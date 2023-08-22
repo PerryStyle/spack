@@ -107,7 +107,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
     )
 
     # Kokkos Dependency
-    depends_on("kokkos@3.7.1", when="+kokkos")
+    depends_on("kokkos", when="+kokkos")
 
     # OpenCL Dependency
 
@@ -173,7 +173,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         model_list = find_model_flag(spec_string_truncate)  # Prints out ['cuda', 'thrust']
 
         if len(model_list) > 1:
-            ignore_list = ["cuda"]  # if +acc is provided ignore the cuda model
+            ignore_list = ["cuda", "pkg"]  # if +acc is provided ignore the cuda model
             model = list(set(model_list) - set(ignore_list))
             # We choose 'thrust' from the list of ['cuda', 'thrust']
             args = ["-DMODEL=" + model[0]]
