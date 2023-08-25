@@ -21,7 +21,8 @@
 # ----------------------------------------------------------------------------
 
 from spack.package import *
-
+import os
+import glob
 
 class Su3bench(MakefilePackage, CudaPackage):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
@@ -52,6 +53,7 @@ class Su3bench(MakefilePackage, CudaPackage):
         return {
             "CC={0}".format(compiler),
             "CFLAGS={0}".format(cflags),
+            "all",
         }
 
 
@@ -60,5 +62,8 @@ class Su3bench(MakefilePackage, CudaPackage):
 
     def install(self, spec, prefix):
         mkdir(prefix.bin)
-        # TODO Add Variant Name
-        install("bench_f32_openmp.exe", prefix.bin)
+        executables = glob.glob("*.exe")
+        for exe in executables:
+            new_name = exe[:9]
+            os.rename(exe, new_name)
+            install(new_name, prefix.bin)
