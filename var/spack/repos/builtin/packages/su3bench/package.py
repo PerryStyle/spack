@@ -23,7 +23,7 @@
 from spack.package import *
 
 
-class SU3Bench(Package):
+class SU3Bench(MakefilePackage):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
     homepage = "https://gitlab.com/NERSC/nersc-proxies/su3_bench"
