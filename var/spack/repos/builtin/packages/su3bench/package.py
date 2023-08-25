@@ -33,6 +33,7 @@ class Su3bench(MakefilePackage, CudaPackage):
     version("master", branch="master")
 
     variant("openmp_cpu", default=False, description="Build with OpenMP CPU support")
+    variant("openmp", default=False, description="Build with OpenMP support")
 
     @property
     def build_targets(self):
@@ -47,7 +48,7 @@ class Su3bench(MakefilePackage, CudaPackage):
         else:
             compiler = "c++"
 
-        if "+openmp_cpu" in spec:
+        if "+openmp_cpu" in spec or "+openmp" in spec:
             cflags += " " + self.compiler.openmp_flag
 
 
@@ -63,6 +64,9 @@ class Su3bench(MakefilePackage, CudaPackage):
 
         if "+openmp_cpu" in spec:
             makefile_file = "Makefile.openmp_cpu"
+
+        if "+openmp" in spec:
+            makefile_file = "Makefile.openmp"
 
         if "+cuda" in spec:
             makefile_file = "Makefile.cuda"
