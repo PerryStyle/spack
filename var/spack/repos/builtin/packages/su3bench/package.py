@@ -26,16 +26,10 @@ from spack.package import *
 class SU3Bench(Package):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
-    homepage = "https://www.example.com"
-    url = "su_3bench"
+    homepage = "https://gitlab.com/NERSC/nersc-proxies/su3_bench"
     git = "https://gitlab.com/NERSC/nersc-proxies/su3_bench.git"
 
-    # FIXME: Add a list of GitHub accounts to
-    # notify when the package is updated.
-    # maintainers("github_user1", "github_user2")
-
-    # FIXME: Add proper versions here.
-    # version("1.2.4")
+    version("master", branch="master")
 
     # FIXME: Add dependencies if required.
     # depends_on("foo")
