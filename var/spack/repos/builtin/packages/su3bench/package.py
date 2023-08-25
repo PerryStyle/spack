@@ -42,7 +42,8 @@ class Su3bench(MakefilePackage, CudaPackage):
 
         if "+cuda" in spec:
             compiler = spec["cuda"].prefix.bin.nvcc
-            cflags += " " + " ".join(self.cuda_flags(cuda_arch))
+            cuda_arch = spec.variants["cuda_arch"].value
+            cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
         else:
             compiler = "c++"
 
