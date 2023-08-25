@@ -23,7 +23,7 @@
 from spack.package import *
 
 
-class Su3bench(MakefilePackage):
+class Su3bench(MakefilePackage, CudaPackage):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
     homepage = "https://gitlab.com/NERSC/nersc-proxies/su3_bench"
@@ -31,15 +31,28 @@ class Su3bench(MakefilePackage):
 
     version("master", branch="master")
 
-    """
+    variant("openmp_cpu", default=False, description="Build with OpenMP CPU support")
+
     @property
     def build_targets(self):
         spec = self.spec
+        compiler = ""
+        cflags = "-O3"
+
+        if "+cuda" in spec:
+            compiler = spec["cuda"].prefix.bin.nvcc
+        else:
+            compiler = "c++"
+
+        if "+openmp_cpu" in spec:
+            cflags += " " + self.compiler.openmp_flag
+
 
         return {
-            "CC={0}".format(spack_cxx)
+            "CC={0}".format(compiler),
+            "CFLAGS={0}".format(cflags),
         }
-    """
+
 
     def build(self, spec, prefix):
         make("-f", "Makefile.openmp_cpu")
