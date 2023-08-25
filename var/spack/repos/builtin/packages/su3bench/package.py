@@ -28,6 +28,7 @@ class SU3Bench(Package):
 
     homepage = "https://www.example.com"
     url = "su_3bench"
+    git = "https://gitlab.com/NERSC/nersc-proxies/su3_bench.git"
 
     # FIXME: Add a list of GitHub accounts to
     # notify when the package is updated.
