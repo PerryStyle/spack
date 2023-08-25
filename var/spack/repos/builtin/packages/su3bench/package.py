@@ -23,7 +23,7 @@
 from spack.package import *
 
 
-class SU3Bench(MakefilePackage):
+class Su3bench(MakefilePackage):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
     homepage = "https://gitlab.com/NERSC/nersc-proxies/su3_bench"
@@ -31,10 +31,20 @@ class SU3Bench(MakefilePackage):
 
     version("master", branch="master")
 
-    # FIXME: Add dependencies if required.
-    # depends_on("foo")
+    """
+    @property
+    def build_targets(self):
+        spec = self.spec
+
+        return {
+            "CC={0}".format(spack_cxx)
+        }
+    """
+
+    def build(self, spec, prefix):
+        make("-f", "Makefile.openmp_cpu")
 
     def install(self, spec, prefix):
-        # FIXME: Unknown build system
-        make()
-        make("install")
+        mkdir(prefix.bin)
+        # TODO Add Variant Name
+        install("bench_f32_openmp.exe", prefix.bin)
