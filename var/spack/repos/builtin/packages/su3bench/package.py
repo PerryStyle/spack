@@ -58,7 +58,15 @@ class Su3bench(MakefilePackage, CudaPackage):
 
 
     def build(self, spec, prefix):
-        make("-f", "Makefile.openmp_cpu", *self.build_targets)
+        makefile_file = ""
+
+        if "+openmp_cpu" in spec:
+            makefile_file = "Makefile.openmp_cpu"
+
+        if "+cuda" in spec:
+            makefile_file = "Makefile.cuda"
+
+        make("-f", makefile_file, *self.build_targets)
 
     def install(self, spec, prefix):
         mkdir(prefix.bin)
