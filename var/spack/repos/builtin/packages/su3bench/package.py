@@ -24,9 +24,8 @@ from spack.package import *
 
 
 class SU3Bench(Package):
-    """FIXME: Put a proper description of your package here."""
+    """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
-    # FIXME: Add a proper url for your package's homepage here.
     homepage = "https://www.example.com"
     url = "su_3bench"
 
