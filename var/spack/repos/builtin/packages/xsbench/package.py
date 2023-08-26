@@ -83,12 +83,6 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
                 cflags += " " + " ".join(self.cuda_flags(cuda_arch))
             elif "+hip" in spec:
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
-
-                if spec["hip"].satisfies("+cuda"):
-                    cuda_arch = spec.variants["cuda_arch"].value
-                    cflags += " " + " ".join(self.cuda_flags(cuda_arch))
-                    cflags += " --x cu"
-                    
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
