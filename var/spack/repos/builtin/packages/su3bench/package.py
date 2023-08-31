@@ -7,7 +7,7 @@ from spack.package import *
 import os
 import glob
 
-class Su3bench(MakefilePackage, CudaPackage):
+class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
     homepage = "https://gitlab.com/NERSC/nersc-proxies/su3_bench"
@@ -17,6 +17,19 @@ class Su3bench(MakefilePackage, CudaPackage):
 
     variant("openmp_cpu", default=False, description="Build with OpenMP CPU support")
     variant("openmp", default=False, description="Build with OpenMP support")
+    variant("kokkos", default=False, description="Build with Kokkos support")
+    variant("raja", default=False, description="Build with RAJA support")
+
+    build_system("makefile", "cmake", default="makefile")
+
+    conflicts("build_system=makefile", when="+kokkos")
+    conflicts("build_system=makefile", when="+raja")
+
+    depends_on("kokkos", when="+kokkos")
+    
+    depends_on("raja", when="+raja")
+    depends_on("umpire", when="+raja")
+    depends_on("chai", when="+raja")
 
     @property
     def build_targets(self):
@@ -63,3 +76,25 @@ class Su3bench(MakefilePackage, CudaPackage):
             new_name = exe[:9]
             os.rename(exe, new_name)
             install(new_name, prefix.bin)
+
+class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
+    install_targets = ["install"]
+    
+    def cmake_args(self):
+        spec = self.spec
+        args = []
+        model = ""
+
+        if "+kokkos" in spec:
+            model = "Kokkos"
+            args.append(self.define("Kokkos_ROOT", spec["kokkos"].prefix))
+
+        if "+raja" in spec:
+            model = "RAJA"
+            args.append(self.define("RAJA_ROOT", spec["raja"].prefix))
+            args.append(self.define("umpire_ROOT", spec["umpire"].prefix))
+            args.append(self.define("chai_ROOT", spec["chai"].prefix))
+        
+        args.append(self.define("MODEL", model))
+        
+        return args
