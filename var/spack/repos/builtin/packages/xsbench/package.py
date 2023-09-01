@@ -26,10 +26,10 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
     version("14", sha256="595afbcba8c1079067d5d17eedcb4ab0c1d115f83fd6f8c3de01d74b23015e2d", deprecated=True)
     version("13", sha256="b503ea468d3720a0369304924477b758b3d128c8074776233fa5d567b7ffcaa2", deprecated=True)
 
-    build_system(
-        conditional("cmake", when="+kokkos"), conditional("makefile", when="~kokkos"), default="makefile"
-    )
+    build_system("makefile", "cmake", default="makefile")
 
+    conflicts("build_system=makefile", when="+kokkos")
+    
     variant("mpi", default=False, description="Build with MPI support")
     variant("openmp-threading", default=False, description="Build with OpenMP Threading support")
     variant("openmp-offload", default=False, description="Build with OpenMP Offload support")
