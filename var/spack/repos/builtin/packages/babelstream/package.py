@@ -41,16 +41,34 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
     variant("stddata", default=False, description="Enable STD-data support")
     variant("stdindices", default=False, description="Enable STD-indices support")
     variant("stdranges", default=False, description="Enable STD-ranges support")
+    variant("kokkos", default=False, description="Enable KOKKOS support")
 
     # Some models need to have the programming model abstraction downloaded -
     # this variant enables a path to be provided.
     variant("dir", values=str, default="none", description="Enable Directory support")
-
-    # Kokkos conflict and variant
-    conflicts(
-        "dir=none", when="+kokkos", msg="KOKKKOS requires architecture to be specfied by dir="
+    variant(
+        "pkg", default=False,
+        description="Use spack package support instead of directory where possible"
     )
-    variant("kokkos", default=False, description="Enable KOKKOS support")
+
+    # Kokkos conflicts
+    #conflicts(
+    #    "dir=none", when="+kokkos", msg="KOKKOS requires architecture to be specfied by dir="
+    #)
+    conflicts(
+        "dir=none",
+        when="+kokkos~pkg",
+        msg="Kokkos variant requires either in-tree path to kokkos or use of package"
+    )
+    for arch in CudaPackage.cuda_arch_values:
+        depends_on(
+            "kokkos+cuda+cuda_lambda cuda_arch=%s" % arch, when="+kokkos+pkg+cuda cuda_arch=%s" % arch
+        )
+    for arch in ROCmPackage.amdgpu_targets:
+        depends_on(
+            "kokkos+rocm amdgpu_target=%s" % arch, when="+kokkos+pkg+rocm amdgpu_target=%s" % arch
+        )
+    depends_on("kokkos+openmp", when="+kokkos+omp")
 
     # ACC conflict
     variant("cpu_arch", values=str, default="none", description="Enable CPU Target for ACC")
@@ -191,6 +209,8 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # ===================================
         if ("+acc" in self.spec) and ("~cuda" in self.spec):
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
+            #if "ppc64le" in self.spec.architecture:
+            #    args.append('-DRELEASE_FLAGS=-O3')
             if "cuda_arch" in self.spec.variants:
                 cuda_arch_list = self.spec.variants["cuda_arch"].value
                 # the architecture value is only number so append sm_ to the name
@@ -385,29 +405,33 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # The usage should be spack install babelstream +kokkos +cuda [or +omp]
         if "+kokkos" in self.spec:
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
-            args.append("-DKOKKOS_IN_TREE=" + self.spec.variants["dir"].value)
-            # args.append("-DKOKKOS_IN_PACKAGE=" + self.spec["kokkos"].prefix)
-            if "backend" in self.spec.variants:
-                if "cuda" in self.spec.variants["backend"].value:
-                    args.append("-DKokkos_ENABLE_CUDA=ON")
-                    cuda_arch_list = self.spec.variants["cuda_arch"].value
-                    int_cuda_arch = int(cuda_arch_list[0])
-                    # arhitecture kepler optimisations
-                    if int_cuda_arch in (30, 32, 35, 37):
-                        args.append("-D" + "Kokkos_ARCH_KEPLER" + str(int_cuda_arch) + "=ON")
-                    # arhitecture maxwell optimisations
-                    if int_cuda_arch in (50, 52, 53):
-                        args.append("-D" + "Kokkos_ARCH_MAXWELL" + str(int_cuda_arch) + "=ON")
-                    # arhitecture pascal optimisations
-                    if int_cuda_arch in (60, 61):
-                        args.append("-D" + "Kokkos_ARCH_PASCAL" + str(int_cuda_arch) + "=ON")
-                    # architecture volta optimisations
-                    if int_cuda_arch in (70, 72):
-                        args.append("-D" + "Kokkos_ARCH_VOLTA" + str(int_cuda_arch) + "=ON")
-                    if int_cuda_arch == 75:
-                        args.append("-DKokkos_ARCH_TURING75=ON")
-                if "omp" in self.spec.variants["backend"].value:
-                    args.append("-DKokkos_ENABLE_OPENMP=ON")
+            if "+pkg" in self.spec and "dir=none" in self.spec:
+                args.append("-DKOKKOS_IN_PACKAGE=" + self.spec["kokkos"].prefix)
+            else:
+                args.append("-DKOKKOS_IN_TREE=" + self.spec.variants["dir"].value)
+                if "backend" in self.spec.variants:
+                    if "cuda" in self.spec.variants["backend"].value:
+                        args.append("-DKokkos_ENABLE_CUDA=ON")
+                        #args.append('-DRELEASE_FLAGS="-O3 -mcpu=native -arch=sm_70 -std=c++14"')
+                        args.append("-DKokkos_ENABLE_CUDA_LAMBDA=ON")
+                        cuda_arch_list = self.spec.variants["cuda_arch"].value
+                        int_cuda_arch = int(cuda_arch_list[0])
+                        # arhitecture kepler optimisations
+                        if int_cuda_arch in (30, 32, 35, 37):
+                            args.append("-D" + "Kokkos_ARCH_KEPLER" + str(int_cuda_arch) + "=ON")
+                        # arhitecture maxwell optimisations
+                        if int_cuda_arch in (50, 52, 53):
+                            args.append("-D" + "Kokkos_ARCH_MAXWELL" + str(int_cuda_arch) + "=ON")
+                        # arhitecture pascal optimisations
+                        if int_cuda_arch in (60, 61):
+                            args.append("-D" + "Kokkos_ARCH_PASCAL" + str(int_cuda_arch) + "=ON")
+                        # architecture volta optimisations
+                        if int_cuda_arch in (70, 72):
+                            args.append("-D" + "Kokkos_ARCH_VOLTA" + str(int_cuda_arch) + "=ON")
+                        if int_cuda_arch == 75:
+                            args.append("-DKokkos_ARCH_TURING75=ON")
+                    if "omp" in self.spec.variants["backend"].value:
+                        args.append("-DKokkos_ENABLE_OPENMP=ON")
 
         # not in ["kokkos", "raja", "acc", "hip"] then compiler forced true
         if set(model_list).intersection(["kokkos", "raja", "acc", "hip"]) is True:
