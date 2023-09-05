@@ -164,6 +164,12 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         default="none",
         description="Compile using the specified SYCL compiler option",
     )
+    variant(
+        "implementation_path",
+        values=str,
+        default="none",
+        description="Provide path to SYCL compiler install if needed",
+    )
 
     conflicts(
         "implementation=none",
@@ -272,10 +278,12 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # ===================================
 
         if "+sycl" in self.spec:
+            if "ppc64le" in self.spec.architecture:
+                args.append('-DRELEASE_FLAGS=-O3')
             args.append("-DSYCL_COMPILER=" + self.spec.variants["implementation"].value.upper())
             if self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
                 args.append(
-                    "-DSYCL_COMPILER_DIR=" + self.spec.variants["implementation"].value.upper()
+                    "-DSYCL_COMPILER_DIR=" + self.spec.variants["implementation_path"].value
                 )
                 if self.spec.variants["implementation"].value.upper() == "COMPUTE-CPP":
                     args.append("-DOpenCL_LIBRARY=")
