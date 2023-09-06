@@ -26,7 +26,6 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
     conflicts("build_system=makefile", when="+raja")
 
     depends_on("kokkos", when="+kokkos")
-    
     depends_on("raja", when="+raja")
     depends_on("umpire", when="+raja")
     depends_on("chai", when="+raja")
@@ -37,7 +36,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
         compiler = ""
         cflags = "-O3"
 
-        if "+cuda" in spec:
+        if "+cuda" in spec and "+raja" not in spec:
             compiler = spec["cuda"].prefix.bin.nvcc
             cuda_arch = spec.variants["cuda_arch"].value
             cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
@@ -64,7 +63,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
         if "+openmp" in spec:
             makefile_file = "Makefile.openmp"
 
-        if "+cuda" in spec:
+        if "+cuda" in spec and "+raja" not in spec:
             makefile_file = "Makefile.cuda"
 
         make("-f", makefile_file, *self.build_targets)
@@ -79,7 +78,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
 
 class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
     install_targets = ["install"]
-    
+
     def cmake_args(self):
         spec = self.spec
         args = []
@@ -94,7 +93,10 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
             args.append(self.define("RAJA_ROOT", spec["raja"].prefix))
             args.append(self.define("umpire_ROOT", spec["umpire"].prefix))
             args.append(self.define("chai_ROOT", spec["chai"].prefix))
-        
+            if "+cuda" in spec:
+                args.append(self.define("BACKEND", "CUDA"))
+                args.append(self.define("CUDA_ARCH", "sm_" + spec.variants["cuda_arch"].value[0]))
+
         args.append(self.define("MODEL", model))
-        
+
         return args
