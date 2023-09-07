@@ -44,8 +44,6 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
     depends_on("kokkos", when="+kokkos")
 
     conflicts("cuda_arch=none", when="+cuda", msg="CUDA architecture is required")
-    conflicts("cuda_arch=none", when="+openacc", msg="CUDA arch required with OpenACC")
-    conflicts("cuda_arch=none", when="+openmp-offload", msg="CUDA arch required with OpenMP Offload")
 
     @property
     def build_directory(self):
@@ -101,10 +99,8 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
             elif "+openmp-offload" in spec:
                 targets.append("CC={0}".format(spack_cc))
-                cflags += " -fopenmp-targets=nvptx-nvidia-cuda -Xopenmp-target -march=sm_" + spec.variants["cuda_arch"].value[0]
             elif "+openacc" in spec:
                 targets.append("CC={0}".format(spack_cc))
-                cflags += " -acc -Minfo=accel -gpu=cc" + spec.variants["cuda_arch"].value[0]
             else:
                 targets.append("CC={0}".format(spack_cc))
 
