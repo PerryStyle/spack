@@ -26,6 +26,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
     conflicts("build_system=makefile", when="+raja")
 
     depends_on("kokkos", when="+kokkos")
+    
     depends_on("raja", when="+raja")
     depends_on("umpire", when="+raja")
     depends_on("chai", when="+raja")
@@ -93,9 +94,14 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
             args.append(self.define("RAJA_ROOT", spec["raja"].prefix))
             args.append(self.define("umpire_ROOT", spec["umpire"].prefix))
             args.append(self.define("chai_ROOT", spec["chai"].prefix))
-            if "+cuda" in spec:
-                args.append(self.define("BACKEND", "CUDA"))
-                args.append(self.define("CUDA_ARCH", "sm_" + spec.variants["cuda_arch"].value[0]))
+
+            raja_spec = spec["raja"]
+            if raja_spec.satisfies("+openmp"):
+                args.append(self.define("ENABLE_OPENMP", "ON"))
+            if raja_spec.satisfies("+cuda"):
+                args.append(self.define("ENABLE_CUDA", "ON"))
+            if raja_spec.satisfies("+hip"):
+                args.append(self.define("ENABLE_HIP", "ON"))
 
         args.append(self.define("MODEL", model))
 
