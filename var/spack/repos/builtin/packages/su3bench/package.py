@@ -30,6 +30,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
     depends_on("raja", when="+raja")
     depends_on("umpire", when="+raja")
     depends_on("chai", when="+raja")
+    depends_on("blt", when="+raja")
 
     @property
     def build_targets(self):
@@ -94,6 +95,7 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
             args.append(self.define("RAJA_ROOT", spec["raja"].prefix))
             args.append(self.define("umpire_ROOT", spec["umpire"].prefix))
             args.append(self.define("chai_ROOT", spec["chai"].prefix))
+            args.append(self.define("BLT_SOURCE_DIR", spec["blt"].prefix))
 
             raja_spec = spec["raja"]
             if raja_spec.satisfies("+openmp"):
