@@ -7,7 +7,7 @@
 from spack.package import *
 
 
-class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
+class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     """XSBench is a mini-app representing a key computational
     kernel of the Monte Carlo neutronics application OpenMC.
     A full explanation of the theory and purpose of XSBench
