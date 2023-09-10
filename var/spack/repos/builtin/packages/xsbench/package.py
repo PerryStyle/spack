@@ -70,9 +70,6 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+openacc" in spec:
             return "openacc"
 
-        if "+hip" in spec:
-            return "hip"
-
         if "+cuda" in spec:
             return "cuda"
 
@@ -94,6 +91,9 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
                 cflags += " " + " ".join(self.cuda_flags(cuda_arch))
             elif "+hip" in spec:
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
+                if not spec.satisfies("amdgpu_target=none"):
+                    hip_arch = spec.variants["amdgpu_target"].value
+                    cflags += " " = " ".join(self.hip_flags(hip_arch))
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
