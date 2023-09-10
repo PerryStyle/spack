@@ -31,10 +31,20 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     variant("managed-alloc", default=False, description="Enable unified memory")
     variant("sync-all-kernels", default=False, description="Enabling synchronizing of kernels")
 
+    variant("sycl-compiler",
+            default="none",
+            values=("ONEAPI-ICPX", "ONEAPI-Clang", "DPCPP",
+                    "HIPSYCL", "COMPUTECPP"),
+            description="Compile using the specified SYCL compiler implementation"
+            )
+
     depends_on("kokkos", when="+kokkos")
 
     depends_on("raja", when="+raja")
     depends_on("umpire", when="+raja")
+
+    conflicts("sycl-compiler=none", when="+sycl-acc")
+    conflicts("sycl-compiler=none", when="+sycl-usm")
 
 
     def cmake_args(self):
