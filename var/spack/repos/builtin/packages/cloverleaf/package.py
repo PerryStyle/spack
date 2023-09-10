@@ -11,6 +11,12 @@ import os
 class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     """FIXME: Put a proper description of your package here."""
 
+<<<<<<< HEAD
+=======
+class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
+    """FIXME: Put a proper description of your package here."""
+
+>>>>>>> packages/cloverleaf-update
     # FIXME: Add a proper url for your package's homepage here.
     homepage = "https://www.example.com"
     url = "cloverleaf"
@@ -24,6 +30,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
     variant("kokkos", default=False, description="Enable Kokkos support")
     variant("omp", default=False, description="Enable OpenMP support")
+    variant("hip", default=False, description="Enabel HIP support")
     variant("omp-target", default=False, description="Enable OpenMP target offload support")
     variant("raja", default=False, description="Enable RAJA support")
     variant("sycl-acc", default=False, description="Enable sycl-acc support")
@@ -38,6 +45,8 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             description="Compile using the specified SYCL compiler implementation"
             )
 
+    depends_on("hip", when="+hip")
+
     depends_on("kokkos", when="+kokkos")
 
     depends_on("raja", when="+raja")
@@ -51,11 +60,21 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         model = ""
         args = []
 
-        if "+cuda" in spec:
+        if "+hip" and "+rocm" in spec:
+            model = "hip"
+            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
+            hip_arch = spec.variants["amdgpu_target"].value
+            args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.hip_flags(hip_arch))))
+        elif "+hip" and "+cuda" in spec:
+            model = "hip"
+            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
+            cuda_arch = spec.variants["cuda_arch"].value
+            args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
+        elif "+cuda" in spec:
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
             args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value[0])))
-
+        
         if "+kokkos" in spec:
             model = "kokkos"
             args.append(self.define("KOKKOS_IN_PACKAGE", spec["kokkos"].prefix))
