@@ -16,10 +16,13 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     version("master", branch="master")
 
     variant("openmp_cpu", default=False, description="Build with OpenMP CPU support")
-    variant("openmp", default=False, description="Build with OpenMP support")
+    variant("openmp_offload", default=False, description="Build with OpenMP Offload support")
     variant("kokkos", default=False, description="Build with Kokkos support")
     variant("raja", default=False, description="Build with RAJA support")
     variant("hip", default=False, description="Build with HIP support")
+    variant("dpcpp", default=False, description="Build with DPC++ support")
+    variant("openacc", default=False, description="Build with OpenACC support")
+    variant("align", default=False, description="Adjust timers to include data movement to device")
 
     build_system("makefile", "cmake", default="makefile")
 
@@ -42,12 +45,14 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         compiler = ""
         cflags = "-O3"
 
-        if "+hip" in spec:
+        if "+hip" in spec and "+rocm" in spec:
             compiler = spec["hip"].prefix.bin.hipcc
-
-            if not spec.satisfies["cuda_arch=none"]:
-                cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
+            hip_arch = spec.variants["amdgpu_target"].value
+            cflags += " " + " ".join(self.hip_flags(hip_arch))
+        elif "+hip" in spec and "+cuda" in spec:
+            compiler = spec["hip"].prefix.bin.hipcc
+            cuda_arch = spec.variants["cuda_arch"].value
+            cflags += " ".join(self.cuda_flags(cuda_arch))
         elif "+cuda" in spec:
             compiler = spec["cuda"].prefix.bin.nvcc
             cuda_arch = spec.variants["cuda_arch"].value
@@ -58,6 +63,11 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+openmp_cpu" in spec or "+openmp" in spec:
             cflags += " " + self.compiler.openmp_flag
 
+        if "+dpcpp" in spec:
+            cflags += "-ffast-math -fsycl"
+
+        if "+align" in spec:
+            targets.append("ALIGN=yes")
 
         return {
             "CC={0}".format(compiler),
@@ -72,11 +82,20 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+openmp_cpu" in spec:
             makefile_file = "Makefile.openmp_cpu"
 
-        if "+openmp" in spec:
+        if "+openmp_offload" in spec:
             makefile_file = "Makefile.openmp"
 
-        if "+cuda" in spec and "+raja" not in spec:
+        if "+hip" in spec:
+            makefile_file = "Makefile.hip"
+
+        if "+cuda" in spec: 
             makefile_file = "Makefile.cuda"
+
+        if "+dpcpp" in spec:
+            makefile_file = "Makefile.dpcpp"
+
+        if "+openacc" in spec:
+            makefile_file = "Makefile.openacc"
 
         make("-f", makefile_file, *self.build_targets)
 
