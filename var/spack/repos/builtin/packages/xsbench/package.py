@@ -70,9 +70,6 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+openacc" in spec:
             return "openacc"
 
-        if "+cuda" in spec:
-            return "cuda"
-
     @property
     def build_targets(self):
         spec = self.spec
@@ -85,15 +82,14 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             targets.append("CC=mpicc")
             targets.append("MPI=yes")
         else:
-            if "+cuda" in spec and "+openacc" not in spec and "+openmp-offload" not in spec:
+            if "+hip" in spec:
+                targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
+                hip_arch = spec.variants["amdgpu_target"].value
+                cflags += " " + " ".join(self.hip_flags(hip_arch))
+            elif "+cuda" in spec: 
                 targets.append("CC={0}".format(spec["cuda"].prefix.bin.nvcc))
                 cuda_arch = spec.variants["cuda_arch"].value
                 cflags += " " + " ".join(self.cuda_flags(cuda_arch))
-            elif "+hip" in spec:
-                targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
-                if not spec.satisfies("amdgpu_target=none"):
-                    hip_arch = spec.variants["amdgpu_target"].value
-                    cflags += " " + " ".join(self.hip_flags(hip_arch))
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
