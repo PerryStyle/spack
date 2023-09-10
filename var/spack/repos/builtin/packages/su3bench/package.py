@@ -7,7 +7,7 @@ from spack.package import *
 import os
 import glob
 
-class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
+class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
     homepage = "https://gitlab.com/NERSC/nersc-proxies/su3_bench"
@@ -19,18 +19,22 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
     variant("openmp", default=False, description="Build with OpenMP support")
     variant("kokkos", default=False, description="Build with Kokkos support")
     variant("raja", default=False, description="Build with RAJA support")
+    variant("hip", default=False, description="Build with HIP support")
 
     build_system("makefile", "cmake", default="makefile")
 
     conflicts("build_system=makefile", when="+kokkos")
     conflicts("build_system=makefile", when="+raja")
+    
+    # conflicts("+cuda +hip", msg="CUDA and HIP are mutually exclusive")
+
+    depends_on("hip", when="+hip")
 
     depends_on("kokkos", when="+kokkos")
     
     depends_on("raja", when="+raja")
     depends_on("umpire", when="+raja")
     depends_on("chai", when="+raja")
-    depends_on("blt", when="+raja")
 
     @property
     def build_targets(self):
@@ -38,10 +42,12 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
         compiler = ""
         cflags = "-O3"
 
-        if "+cuda" in spec and "+raja" not in spec:
+        if "+cuda" in spec:
             compiler = spec["cuda"].prefix.bin.nvcc
             cuda_arch = spec.variants["cuda_arch"].value
             cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
+        elif "+hip" in spec:
+            compiler = spec["hip"].prefix.bin.hipcc
         else:
             compiler = "c++"
 
