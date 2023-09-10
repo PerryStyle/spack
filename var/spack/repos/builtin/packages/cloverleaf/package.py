@@ -24,7 +24,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
     variant("kokkos", default=False, description="Enable Kokkos support")
     variant("omp", default=False, description="Enable OpenMP support")
-    variant("omp-target", default=False, description="Enabel OpenMP target offload support")
+    variant("omp-target", default=False, description="Enable OpenMP target offload support")
     variant("raja", default=False, description="Enable RAJA support")
     variant("sycl-acc", default=False, description="Enable sycl-acc support")
     variant("sycl-usm", default=False, description="Enable sycl-usm support")
