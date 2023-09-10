@@ -3,120 +3,86 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+# ----------------------------------------------------------------------------
 
 from spack.package import *
+import os
 
+class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
+    """FIXME: Put a proper description of your package here."""
 
-class Cloverleaf(MakefilePackage):
-    """Proxy Application. CloverLeaf is a miniapp that solves the
-    compressible Euler equations on a Cartesian grid,
-    using an explicit, second-order accurate method.
-    """
+    # FIXME: Add a proper url for your package's homepage here.
+    homepage = "https://www.example.com"
+    url = "cloverleaf"
+    git = "https://github.com/UoB-HPC/CloverLeaf.git"
 
-    homepage = "https://uk-mac.github.io/CloverLeaf"
-    url = "https://downloads.mantevo.org/releaseTarballs/miniapps/CloverLeaf/CloverLeaf-1.1.tar.gz"
-    git = "https://github.com/UK-MAC/CloverLeaf.git"
+    # FIXME: Add a list of GitHub accounts to
+    # notify when the package is updated.
+    # maintainers("github_user1", "github_user2")
 
-    tags = ["proxy-app"]
+    version("main", branch="main")
 
-    version("master", branch="master", submodules=True)
-    version("1.1", sha256="de87f7ee6b917e6b3d243ccbbe620370c62df890e3ef7bdbab46569b57be132f")
+    variant("kokkos", default=False, description="Enable Kokkos support")
+    variant("omp", default=False, description="Enable OpenMP support")
+    variant("omp-target", default=False, description="Enable OpenMP target offload support")
+    variant("raja", default=False, description="Enable RAJA support")
+    variant("sycl-acc", default=False, description="Enable sycl-acc support")
+    variant("sycl-usm", default=False, description="Enable sycl-usm support")
+    variant("managed-alloc", default=False, description="Enable unified memory")
+    variant("sync-all-kernels", default=False, description="Enabling synchronizing of kernels")
 
-    variant(
-        "build",
-        default="ref",
-        description="Type of Parallelism Build",
-        values=("cuda", "mpi_only", "openacc_cray", "openmp_only", "ref", "serial"),
-    )
-    variant("ieee", default=False, description="Build with IEEE standards")
-    variant("debug", default=False, description="Build with DEBUG flags")
+    variant("sycl-compiler",
+            default="None",
+            values=("ONEAPI-ICPX", "ONEAPI-Clang", "DPCPP",
+                    "HIPSYCL", "COMPUTECPP", "None"),
+            description="Compile using the specified SYCL compiler implementation"
+            )
 
-    depends_on("mpi", when="build=cuda")
-    depends_on("mpi", when="build=mpi_only")
-    depends_on("mpi", when="build=openacc_cray")
-    depends_on("mpi", when="build=ref")
-    depends_on("cuda", when="build=cuda")
+    depends_on("kokkos", when="+kokkos")
 
-    conflicts("build=cuda", when="%aocc", msg="Currently AOCC supports only ref variant")
-    conflicts("build=openacc_cray", when="%aocc", msg="Currently AOCC supports only ref variant")
-    conflicts("build=serial", when="%aocc", msg="Currently AOCC supports only ref variant")
-    conflicts("@1.1", when="%aocc", msg="AOCC support is provided from version v.1.3 and above")
+    depends_on("raja", when="+raja")
+    depends_on("umpire", when="+raja")
 
-    @run_before("build")
-    def patch_for_reference_module(self):
-        if self.spec.satisfies("@master %aocc"):
-            fp = join_path(self.package_dir, "aocc_support.patch")
-            which("patch")("-s", "-p0", "-i", "{0}".format(fp), "-d", ".")
+    conflicts("sycl-compiler=None", when="+sycl-acc")
+    conflicts("sycl-compiler=None", when="+sycl-usm")
 
-    @property
-    def type_of_build(self):
-        build = "ref"
+    def cmake_args(self):
+        spec = self.spec
+        model = ""
+        args = []
 
-        if "build=cuda" in self.spec:
-            build = "CUDA"
-        elif "build=mpi_only" in self.spec:
-            build = "MPI"
-        elif "build=openacc_cray" in self.spec:
-            build = "OpenACC_CRAY"
-        elif "build=openmp_only" in self.spec:
-            build = "OpenMP"
-        elif "build=serial" in self.spec:
-            build = "Serial"
+        if "+cuda" in spec:
+            model = "cuda"
+            args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
+            args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value[0])))
 
-        return build
+        if "+kokkos" in spec:
+            model = "kokkos"
+            args.append(self.define("KOKKOS_IN_PACKAGE", spec["kokkos"].prefix))
 
-    @property
-    def build_targets(self):
-        targets = ["--directory=CloverLeaf_{0}".format(self.type_of_build)]
+        if "+omp" in spec:
+            model = "omp"
 
-        if "mpi" in self.spec:
-            targets.append("MPI_COMPILER={0}".format(self.spec["mpi"].mpifc))
-            targets.append("C_MPI_COMPILER={0}".format(self.spec["mpi"].mpicc))
-        else:
-            targets.append("MPI_COMPILER=f90")
-            targets.append("C_MPI_COMPILER=cc")
+        if "+omp-target" in spec:
+            model = "omp-target"
 
-        if "%gcc" in self.spec:
-            targets.append("COMPILER=GNU")
-            targets.append("FLAGS_GNU=")
-            targets.append("CFLAGS_GNU=")
-        elif "%cce" in self.spec:
-            targets.append("COMPILER=CRAY")
-            targets.append("FLAGS_CRAY=")
-            targets.append("CFLAGS_CRAY=")
-        elif "%intel" in self.spec:
-            targets.append("COMPILER=INTEL")
-            targets.append("FLAGS_INTEL=")
-            targets.append("CFLAGS_INTEL=")
-        elif "%aocc" in self.spec:
-            targets.append("COMPILER=AOCC")
-        elif "%pgi" in self.spec:
-            targets.append("COMPILER=PGI")
-            targets.append("FLAGS_PGI=")
-            targets.append("CFLAGS_PGI=")
-        elif "%xl" in self.spec:
-            targets.append("COMPILER=XLF")
-            targets.append("FLAGS_XLF=")
-            targets.append("CFLAGS_XLF=")
+        if "+raja" in spec:
+            model = "raja"
 
-        # Explicit mention of else clause is not working as expected
-        # So, not mentioning them
-        if "+debug" in self.spec:
-            targets.append("DEBUG=1")
+        if "+sycl-acc" or "+sycl-usm":
+            if "+sycl-acc" in spec:
+                model = "sycl-acc"
 
-        if "+ieee" in self.spec:
-            targets.append("IEEE=1")
+            if "+sycl-usm" in spec:
+                model = "sycl-usm"
 
-        return targets
+            args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
 
-    def install(self, spec, prefix):
-        # Manual Installation
-        mkdirp(prefix.bin)
-        mkdirp(prefix.doc.tests)
+        args.append(self.define("MODEL", model))
 
-        install("README.md", prefix.doc)
-        install("documentation.txt", prefix.doc)
+        return args
 
-        install("CloverLeaf_{0}/clover_leaf".format(self.type_of_build), prefix.bin)
-        install("CloverLeaf_{0}/clover.in".format(self.type_of_build), prefix.bin)
-        install("CloverLeaf_{0}/*.in".format(self.type_of_build), prefix.doc.tests)
+    @run_after("install")
+    def post_install(self):
+        prefix_bin = self.spec.prefix.bin
+        install_tree(os.path.join(self.stage.source_path, "InputDecks/."), prefix_bin)
