@@ -16,18 +16,16 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     url = "cloverleaf"
     git = "https://github.com/UoB-HPC/CloverLeaf.git"
 
-
-
     # FIXME: Add a list of GitHub accounts to
     # notify when the package is updated.
     # maintainers("github_user1", "github_user2")
 
     version("main", branch="main")
 
-    variant("kokkos", default=False, description="Enable kokkos support")
+    variant("kokkos", default=False, description="Enable Kokkos support")
     variant("omp", default=False, description="Enable OpenMP support")
     variant("omp-target", default=False, description="Enabel OpenMP target offload support")
-    variant("raja", default=False, description="Enable raja support")
+    variant("raja", default=False, description="Enable RAJA support")
     variant("sycl-acc", default=False, description="Enable sycl-acc support")
     variant("sycl-usm", default=False, description="Enable sycl-usm support")
 
@@ -43,7 +41,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
         if "+cuda" in spec:
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
-            args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value)
+            args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value)))
 
         return args
 
