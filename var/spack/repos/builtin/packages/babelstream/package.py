@@ -42,6 +42,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
     variant("stdindices", default=False, description="Enable STD-indices support")
     variant("stdranges", default=False, description="Enable STD-ranges support")
     variant("kokkos", default=False, description="Enable KOKKOS support")
+    variant("hip", default=False, description="")
 
     # Some models need to have the programming model abstraction downloaded -
     # this variant enables a path to be provided.
@@ -50,6 +51,8 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         "pkg", default=False,
         description="Use spack package support instead of directory where possible"
     )
+
+    depends_on("hip", when="+hip")
 
     # Kokkos conflicts
     #conflicts(
@@ -86,21 +89,25 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         msg="CUDA requires architecture to be specfied by cuda_arch=",
     )
     variant("mem", values=str, default="DEFAULT", description="Enable MEM Target for CUDA")
-    # Raja Conflict
+
+    # Raja Conflicts
     variant(
         "offload", values=str, default="none", description="Enable RAJA Target [CPU or NVIDIA]"
     )
+    variant(
+        "chai", values=bool, default=False, description="Enable CHAI for portable memory management"
+    )
+    depends_on("chai+raja", when="+chai")
+    depends_on("umpire", when="+chai")
     conflicts(
         "offload=none",
         when="+raja",
         msg="RAJA requires architecture to be specfied by target=[CPU,NVIDIA]",
     )
-
-    # download raja from https://github.com/LLNL/RAJA
     conflicts(
         "dir=none",
-        when="+raja",
-        msg="RAJA implementation requires architecture to be specfied by dir=",
+        when="+raja~pkg",
+        msg="RAJA variant requires either in-tree path to RAJA or use of package",
     )
 
     # Thrust Conflict
@@ -197,7 +204,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         model_list = find_model_flag(spec_string_truncate)  # Prints out ['cuda', 'thrust']
 
         if len(model_list) > 1:
-            ignore_list = ["cuda", "pkg"]  # if +acc is provided ignore the cuda model
+            ignore_list = ["cuda", "pkg", "chai"]  # if +acc is provided ignore the cuda model
             model = list(set(model_list) - set(ignore_list))
             # We choose 'thrust' from the list of ['cuda', 'thrust']
             args = ["-DMODEL=" + model[0]]
@@ -210,13 +217,14 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
             else:
                 args = ["-DMODEL=" + model_list[0]]
 
+        if "ppc64le" in self.spec.architecture:
+            args.append('-DRELEASE_FLAGS=-O3')
+
         # ===================================
         #             ACC
         # ===================================
         if ("+acc" in self.spec) and ("~cuda" in self.spec):
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
-            #if "ppc64le" in self.spec.architecture:
-            #    args.append('-DRELEASE_FLAGS=-O3')
             if "cuda_arch" in self.spec.variants:
                 cuda_arch_list = self.spec.variants["cuda_arch"].value
                 # the architecture value is only number so append sm_ to the name
@@ -237,22 +245,6 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         if spec_string.startswith(tuple(std_list)):
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
 
-        # ===================================
-        #             CUDA
-        # ===================================
-
-        if ("+cuda" in self.spec) and ("~kokkos" in self.spec) and ("~acc" in self.spec):
-            # Set up the cuda macros needed by the build
-            cuda_arch_list = self.spec.variants["cuda_arch"].value
-            # the architecture value is only number so append sm_ to the name
-            cuda_arch = "sm_" + cuda_arch_list[0]
-            args.append("-DCUDA_ARCH=" + cuda_arch)
-            cuda_dir = self.spec["cuda"].prefix
-            cuda_comp = cuda_dir + "/bin/nvcc"
-            args.append("-DCMAKE_CUDA_COMPILER=" + cuda_comp)
-            args.append("-DMEM=" + self.spec.variants["mem"].value)
-            if self.spec.variants["flags"].value != "none":
-                args.append("-DCUDA_EXTRA_FLAGS=" + self.spec.variants["flags"].value)
 
         # ===================================
         #             OMP
@@ -278,8 +270,6 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # ===================================
 
         if "+sycl" in self.spec:
-            if "ppc64le" in self.spec.architecture:
-                args.append('-DRELEASE_FLAGS=-O3')
             args.append("-DSYCL_COMPILER=" + self.spec.variants["implementation"].value.upper())
             if self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
                 args.append(
@@ -314,8 +304,8 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         #             HIP(ROCM)
         # ===================================
 
-        if "+rocm" in self.spec:
-            hip_comp = self.spec["rocm"].prefix + "/bin/hipcc"
+        if "+hip" and "+rocm" in self.spec:
+            hip_comp = self.spec["hip"].prefix.bin.hipcc
             args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
             args.append(
                 "-DCXX_EXTRA_FLAGS= --offload-arch="
@@ -325,6 +315,26 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 + " -O3"
             )
 
+        if "+hip" and "+cuda" in self.spec:
+            hip_comp = self.spec["hip"].prefix.bin.hipcc
+            cuda_arch = self.spec.variants["cuda_arch"].value
+            args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch)) + " -O3"))
+        # ===================================
+        #             CUDA
+        # ===================================
+
+        if ("+cuda" in self.spec) and ("~kokkos" in self.spec) and ("~acc" in self.spec):
+            # Set up the cuda macros needed by the build
+            cuda_arch_list = self.spec.variants["cuda_arch"].value
+            # the architecture value is only number so append sm_ to the name
+            cuda_arch = "sm_" + cuda_arch_list[0]
+            args.append("-DCUDA_ARCH=" + cuda_arch)
+            cuda_dir = self.spec["cuda"].prefix
+            cuda_comp = cuda_dir + "/bin/nvcc"
+            args.append("-DCMAKE_CUDA_COMPILER=" + cuda_comp)
+            args.append("-DMEM=" + self.spec.variants["mem"].value)
+            if self.spec.variants["flags"].value != "none":
+                args.append("-DCUDA_EXTRA_FLAGS=" + self.spec.variants["flags"].value)
         # ===================================
         #             TBB
         # ===================================
@@ -361,7 +371,18 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # ===================================
         if "+raja" in self.spec:
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
-            args.append("-DRAJA_IN_TREE=" + self.spec.variants["dir"].value)
+            if "+chai" in self.spec:
+                args.append("-DCHAI_IN_PACKAGE=" + self.spec["chai"].prefix)
+                args.append("-Dumpire_ROOT=" + self.spec["umpire"].prefix)
+                args.append("-Dchai_ROOT=" + self.spec["chai"].prefix)
+            if "+pkg" in self.spec:
+                args.append("-DRAJA_IN_PACKAGE=" + self.spec["raja"].prefix)
+            else:
+                args.append("-DRAJA_IN_TREE=" + self.spec.variants["dir"].value)
+            if "omp" in self.spec.variants["backend"].value:
+                args.append("-DENABLE_OPENMP=ON")
+            if "cuda" in self.spec.variants["backend"].value:
+                args.append("-DENABLE_CUDA=ON")
             if "offload" in self.spec.variants:
                 if "nvidia" in self.spec.variants["offload"].value:
                     cuda_dir = self.spec["cuda"].prefix
@@ -373,15 +394,11 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                     cuda_arch = "sm_" + cuda_arch_list[0]
                     args.append("-DCUDA_ARCH=" + cuda_arch)
 
-                    args.append("DCUDA_TOOLKIT_ROOT_DIR=" + self.spec["cuda"].prefix)
+                    args.append("-DCUDA_TOOLKIT_ROOT_DIR=" + self.spec["cuda"].prefix)
                     if self.spec.variants["flags"].value != "none":
                         args.append("-DCUDA_EXTRA_FLAGS=" + self.spec.variants["flags"].value)
                 # if("cpu" in self.spec.variants['offload'].value):
 
-            if "omp" in self.spec.variants["backend"].value:
-                args.append("-DENABLE_OPENMP=ON")
-            if "cuda" in self.spec.variants["backend"].value:
-                args.append("-DENABLE_CUDA=ON")
 
         # ===================================
         #             THRUST
