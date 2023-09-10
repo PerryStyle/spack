@@ -7,7 +7,7 @@ from spack.package import *
 import os
 import glob
 
-class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
+class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     """Lattice QCD SU(3) Matrix-Matrix Multiply Microbenchmark"""
 
     homepage = "https://gitlab.com/NERSC/nersc-proxies/su3_bench"
@@ -16,14 +16,22 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
     version("master", branch="master")
 
     variant("openmp_cpu", default=False, description="Build with OpenMP CPU support")
-    variant("openmp", default=False, description="Build with OpenMP support")
+    variant("openmp_offload", default=False, description="Build with OpenMP Offload support")
     variant("kokkos", default=False, description="Build with Kokkos support")
     variant("raja", default=False, description="Build with RAJA support")
+    variant("hip", default=False, description="Build with HIP support")
+    variant("dpcpp", default=False, description="Build with DPC++ support")
+    variant("openacc", default=False, description="Build with OpenACC support")
+    variant("align", default=False, description="Adjust timers to include data movement to device")
 
     build_system("makefile", "cmake", default="makefile")
 
     conflicts("build_system=makefile", when="+kokkos")
     conflicts("build_system=makefile", when="+raja")
+    
+    # conflicts("+cuda +hip", msg="CUDA and HIP are mutually exclusive")
+
+    depends_on("hip", when="+hip")
 
     depends_on("kokkos", when="+kokkos")
     
@@ -37,7 +45,15 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
         compiler = ""
         cflags = "-O3"
 
-        if "+cuda" in spec:
+        if "+hip" in spec and "+rocm" in spec:
+            compiler = spec["hip"].prefix.bin.hipcc
+            hip_arch = spec.variants["amdgpu_target"].value
+            cflags += " " + " ".join(self.hip_flags(hip_arch))
+        elif "+hip" in spec and "+cuda" in spec:
+            compiler = spec["hip"].prefix.bin.hipcc
+            cuda_arch = spec.variants["cuda_arch"].value
+            cflags += " ".join(self.cuda_flags(cuda_arch))
+        elif "+cuda" in spec:
             compiler = spec["cuda"].prefix.bin.nvcc
             cuda_arch = spec.variants["cuda_arch"].value
             cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
@@ -47,6 +63,11 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
         if "+openmp_cpu" in spec or "+openmp" in spec:
             cflags += " " + self.compiler.openmp_flag
 
+        if "+dpcpp" in spec:
+            cflags += "-ffast-math -fsycl"
+
+        if "+align" in spec:
+            targets.append("ALIGN=yes")
 
         return {
             "CC={0}".format(compiler),
@@ -61,11 +82,20 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
         if "+openmp_cpu" in spec:
             makefile_file = "Makefile.openmp_cpu"
 
-        if "+openmp" in spec:
+        if "+openmp_offload" in spec:
             makefile_file = "Makefile.openmp"
 
-        if "+cuda" in spec:
+        if "+hip" in spec:
+            makefile_file = "Makefile.hip"
+
+        if "+cuda" in spec: 
             makefile_file = "Makefile.cuda"
+
+        if "+dpcpp" in spec:
+            makefile_file = "Makefile.dpcpp"
+
+        if "+openacc" in spec:
+            makefile_file = "Makefile.openacc"
 
         make("-f", makefile_file, *self.build_targets)
 
@@ -79,7 +109,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage):
 
 class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
     install_targets = ["install"]
-    
+
     def cmake_args(self):
         spec = self.spec
         args = []
@@ -87,14 +117,18 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         if "+kokkos" in spec:
             model = "Kokkos"
-            args.append(self.define("Kokkos_ROOT", spec["kokkos"].prefix))
 
         if "+raja" in spec:
             model = "RAJA"
-            args.append(self.define("RAJA_ROOT", spec["raja"].prefix))
-            args.append(self.define("umpire_ROOT", spec["umpire"].prefix))
-            args.append(self.define("chai_ROOT", spec["chai"].prefix))
-        
+
+            raja_spec = spec["raja"]
+            if raja_spec.satisfies("+openmp"):
+                args.append(self.define("ENABLE_OPENMP", "ON"))
+            if raja_spec.satisfies("+cuda"):
+                args.append(self.define("ENABLE_CUDA", "ON"))
+            if raja_spec.satisfies("+hip"):
+                args.append(self.define("ENABLE_HIP", "ON"))
+
         args.append(self.define("MODEL", model))
-        
+
         return args
