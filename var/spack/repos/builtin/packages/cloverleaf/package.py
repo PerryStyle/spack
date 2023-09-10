@@ -28,6 +28,8 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     variant("raja", default=False, description="Enable RAJA support")
     variant("sycl-acc", default=False, description="Enable sycl-acc support")
     variant("sycl-usm", default=False, description="Enable sycl-usm support")
+    variant("managed-alloc", default=False, description="Enable unified memory")
+    variant("sync-all-kernels", default=False, description="Enabling synchronizing of kernels")
 
     depends_on("kokkos", when="+kokkos")
 
