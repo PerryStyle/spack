@@ -44,6 +44,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         spec = self.spec
         compiler = ""
         cflags = "-O3"
+        align = "no"
 
         if "+hip" in spec and "+rocm" in spec:
             compiler = spec["hip"].prefix.bin.hipcc
@@ -67,11 +68,12 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             cflags += "-ffast-math -fsycl"
 
         if "+align" in spec:
-            targets.append("ALIGN=yes")
+            align = "yes"
 
         return {
             "CC={0}".format(compiler),
             "CFLAGS={0}".format(cflags),
+            "ALIGN={0}".format(align),
             "all",
         }
 
