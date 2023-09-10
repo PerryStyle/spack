@@ -37,11 +37,37 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
     def cmake_args(self):
         spec = self.spec
+        model = ""
         args = []
 
         if "+cuda" in spec:
+            model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
             args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value)))
+
+        if "+kokkos" in spec:
+            model = "kokkos"
+            args.append(self.define("KOKKOS_IN_PACKAGE", spec["kokkos"].prefix))
+
+        if "+omp" in spec:
+            model = "omp"
+
+        if "+omp-target" in spec:
+            model = "omp-target"
+
+        if "+raja" in spec:
+            model = "raja"
+
+        if "+sycl-acc" or "+sycl-usm":
+            if "+sycl-acc" in spec:
+                model = "sycl-acc"
+
+            if "+sycl-usm" in spec:
+                model = "sycl-usm"
+
+            args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
+
+        args.append(self.define("MODEL", model))
 
         return args
 
