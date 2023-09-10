@@ -6,7 +6,7 @@
 # ----------------------------------------------------------------------------
 
 from spack.package import *
-
+import os
 
 class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     """FIXME: Put a proper description of your package here."""
@@ -46,7 +46,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     conflicts("sycl-compiler=None", when="+sycl-acc")
     conflicts("sycl-compiler=None", when="+sycl-usm")
 
-
     def cmake_args(self):
         spec = self.spec
         model = ""
@@ -83,3 +82,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
         return args
 
+    @run_after("install")
+    def post_install(self):
+        prefix_bin = self.spec.prefix.bin
+        install_tree(os.path.join(self.stage.source_path, "InputDecks/."), prefix_bin)
