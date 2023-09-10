@@ -133,10 +133,3 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         if "+kokkos" in spec:
             return "kokkos"
-
-    def cmake_args(self):
-        spec = self.spec
-        args = [
-            self.define("Kokkos_ROOT", spec["kokkos"].prefix)
-        ]
-        return args
