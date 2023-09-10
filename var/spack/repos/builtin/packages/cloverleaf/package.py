@@ -24,6 +24,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
     variant("kokkos", default=False, description="Enable Kokkos support")
     variant("omp", default=False, description="Enable OpenMP support")
+    variant("hip", default=False, description="Enabel HIP support")
     variant("omp-target", default=False, description="Enable OpenMP target offload support")
     variant("raja", default=False, description="Enable RAJA support")
     variant("sycl-acc", default=False, description="Enable sycl-acc support")
@@ -37,6 +38,8 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                     "HIPSYCL", "COMPUTECPP", "None"),
             description="Compile using the specified SYCL compiler implementation"
             )
+
+    depends_on("hip", when="+hip")
 
     depends_on("kokkos", when="+kokkos")
 
@@ -56,6 +59,10 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
             args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value[0])))
+        
+        if "+hip" in spec:
+            model = "hip"
+            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
 
         if "+kokkos" in spec:
             model = "kokkos"
