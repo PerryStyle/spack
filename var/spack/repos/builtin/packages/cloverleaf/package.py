@@ -32,9 +32,9 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     variant("sync-all-kernels", default=False, description="Enabling synchronizing of kernels")
 
     variant("sycl-compiler",
-            default="none",
+            default="None",
             values=("ONEAPI-ICPX", "ONEAPI-Clang", "DPCPP",
-                    "HIPSYCL", "COMPUTECPP"),
+                    "HIPSYCL", "COMPUTECPP", "None"),
             description="Compile using the specified SYCL compiler implementation"
             )
 
@@ -43,8 +43,8 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("raja", when="+raja")
     depends_on("umpire", when="+raja")
 
-    conflicts("sycl-compiler=none", when="+sycl-acc")
-    conflicts("sycl-compiler=none", when="+sycl-usm")
+    conflicts("sycl-compiler=None", when="+sycl-acc")
+    conflicts("sycl-compiler=None", when="+sycl-usm")
 
 
     def cmake_args(self):
@@ -55,7 +55,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         if "+cuda" in spec:
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
-            args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value)))
+            args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value[0])))
 
         if "+kokkos" in spec:
             model = "kokkos"
