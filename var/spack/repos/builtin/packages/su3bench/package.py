@@ -88,14 +88,9 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         if "+kokkos" in spec:
             model = "Kokkos"
-            args.append(self.define("Kokkos_ROOT", spec["kokkos"].prefix))
 
         if "+raja" in spec:
             model = "RAJA"
-            args.append(self.define("RAJA_ROOT", spec["raja"].prefix))
-            args.append(self.define("umpire_ROOT", spec["umpire"].prefix))
-            args.append(self.define("chai_ROOT", spec["chai"].prefix))
-            args.append(self.define("BLT_SOURCE_DIR", spec["blt"].prefix))
 
             raja_spec = spec["raja"]
             if raja_spec.satisfies("+openmp"):
