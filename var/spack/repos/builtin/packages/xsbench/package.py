@@ -93,7 +93,7 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
                 if not spec.satisfies("amdgpu_target=none"):
                     hip_arch = spec.variants["amdgpu_target"].value
-                    cflags += " " = " ".join(self.hip_flags(hip_arch))
+                    cflags += " " + " ".join(self.hip_flags(hip_arch))
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
