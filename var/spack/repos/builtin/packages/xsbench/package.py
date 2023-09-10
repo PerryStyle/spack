@@ -7,7 +7,7 @@
 from spack.package import *
 
 
-class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
+class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     """XSBench is a mini-app representing a key computational
     kernel of the Monte Carlo neutronics application OpenMC.
     A full explanation of the theory and purpose of XSBench
@@ -26,16 +26,18 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
     version("14", sha256="595afbcba8c1079067d5d17eedcb4ab0c1d115f83fd6f8c3de01d74b23015e2d", deprecated=True)
     version("13", sha256="b503ea468d3720a0369304924477b758b3d128c8074776233fa5d567b7ffcaa2", deprecated=True)
 
-    build_system(
-        conditional("cmake", when="+kokkos"), conditional("makefile", when="~kokkos"), default="makefile"
-    )
+    build_system("makefile", "cmake", default="makefile")
 
+    conflicts("build_system=makefile", when="+kokkos")
+    
     variant("mpi", default=False, description="Build with MPI support")
     variant("openmp-threading", default=False, description="Build with OpenMP Threading support")
     variant("openmp-offload", default=False, description="Build with OpenMP Offload support")
     variant("hip", default=False, description="Build with HIP support")
     variant("kokkos", default=False, description="Build with Kokkos support")
     variant("sycl", default=False, description="Build with SYCL support")
+    variant("openacc", default=False, description="Build with OpenACC support")
+    variant("align", default=False, description="Adjust timers to match across XSBench programming model variants")
 
     depends_on("mpi", when="+mpi")
     depends_on("hip", when="+hip")
@@ -46,7 +48,7 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
     @property
     def build_directory(self):
         spec = self.spec
-        
+
         if "+openmp-threading" in spec:
             return "openmp-threading"
 
@@ -58,17 +60,20 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
 
         if "+cuda" in spec:
             return "cuda"
-        
+
         if "+kokkos" in spec:
             return "kokkos"
 
         if "+sycl" in spec:
             return "sycl"
 
+        if "+openacc" in spec:
+            return "openacc"
+
     @property
     def build_targets(self):
         spec = self.spec
-        
+
         targets = []
         cflags = "-O3"
         ldflags = "-lm"
@@ -77,27 +82,43 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage):
             targets.append("CC=mpicc")
             targets.append("MPI=yes")
         else:
-            if "+cuda" in spec:
+            if "+hip" in spec and "+rocm" in spec:
+                targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
+                hip_arch = spec.variants["amdgpu_target"].value
+                cflags += " " + " ".join(self.hip_flags(hip_arch))
+            elif "+hip" in spec and "+cuda" in spec:
+                targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
+                cuda_arch = spec.variants["cuda_arch"].value
+                cflags += " " + " ".join(self.cuda_flags(cuda_arch))
+            elif "+cuda" in spec: 
                 targets.append("CC={0}".format(spec["cuda"].prefix.bin.nvcc))
                 cuda_arch = spec.variants["cuda_arch"].value
                 cflags += " " + " ".join(self.cuda_flags(cuda_arch))
-            elif "+hip" in spec:
-                targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
+            elif "+openmp-offload" in spec:
+                targets.append("CC={0}".format(spack_cc))
+            elif "+openacc" in spec:
+                targets.append("CC={0}".format(spack_cc))
             else:
                 targets.append("CC={0}".format(spack_cc))
 
-
             targets.append("MPI=no")
 
-        if "+openmp-threading" in spec or "+openmp-offload" in spec:
+        # Need to add for acc here because we use omp timers in the acc code
+        if "+openmp-threading" in spec or "+openmp-offload" in spec or "+openacc" in spec:
             cflags += " " + self.compiler.openmp_flag
+
+        if "+align" in spec:
+            targets.append("ALIGNED=yes")
+            cflags += " -DALIGNED_WORK"
+        elif "~align" in spec:
+            targets.append("ALIGNED=no")
 
         targets.append("CFLAGS={0}".format(cflags))
         targets.append("LDFLAGS={0}".format(ldflags))
-        
+
         return targets
 
     def install(self, spec, prefix):
@@ -112,10 +133,3 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         if "+kokkos" in spec:
             return "kokkos"
-    
-    def cmake_args(self):
-        spec = self.spec
-        args = [
-            self.define("Kokkos_ROOT", spec["kokkos"].prefix)
-        ]
-        return args
