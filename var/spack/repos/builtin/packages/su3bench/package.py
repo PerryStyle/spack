@@ -42,12 +42,16 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         compiler = ""
         cflags = "-O3"
 
-        if "+cuda" in spec:
+        if "+hip" in spec:
+            compiler = spec["hip"].prefix.bin.hipcc
+
+            if not spec.satisfies["cuda_arch=none"]:
+                cuda_arch = spec.variants["cuda_arch"].value
+                cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
+        elif "+cuda" in spec:
             compiler = spec["cuda"].prefix.bin.nvcc
             cuda_arch = spec.variants["cuda_arch"].value
             cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
-        elif "+hip" in spec:
-            compiler = spec["hip"].prefix.bin.hipcc
         else:
             compiler = "c++"
 
