@@ -11,12 +11,6 @@ import os
 class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     """FIXME: Put a proper description of your package here."""
 
-<<<<<<< HEAD
-=======
-class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
-    """FIXME: Put a proper description of your package here."""
-
->>>>>>> packages/cloverleaf-update
     # FIXME: Add a proper url for your package's homepage here.
     homepage = "https://www.example.com"
     url = "cloverleaf"
