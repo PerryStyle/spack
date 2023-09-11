@@ -319,7 +319,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
             hip_comp = self.spec["hip"].prefix.bin.hipcc
             args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
             cuda_arch = self.spec.variants["cuda_arch"].value[0]
-            args.append(self.define("CXX_EXTRA_FLAGS", "-O3 -forward-unknown-to-host-compiler -arch={0}".format(cuda_arch)))
+            args.append(self.define("CXX_EXTRA_FLAGS", "-O3 -forward-unknown-to-host-compiler -arch=sm_{0}".format(cuda_arch)))
         # ===================================
         #             CUDA
         # ===================================
