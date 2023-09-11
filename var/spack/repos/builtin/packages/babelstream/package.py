@@ -257,7 +257,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 cuda_arch_list = self.spec.variants["cuda_arch"].value
                 # the architecture value is only number so append sm_ to the name
                 cuda_arch = "sm_" + cuda_arch_list[0]
-                args.append("-DOFFLOAD= " + "NVIDIA:" + cuda_arch)
+                args.append("-DOFFLOAD=" + "NVIDIA:" + cuda_arch)
             elif "amdgpu_target" in self.spec.variants:
                 rocm_arch = self.spec.variants["amdgpu_target"].value
                 # the architecture value is only number so append sm_ to the name
@@ -304,7 +304,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         #             HIP(ROCM)
         # ===================================
 
-        if "+hip" and "+rocm" in self.spec:
+        if "+hip" in self.spec and "+rocm" in self.spec:
             hip_comp = self.spec["hip"].prefix.bin.hipcc
             args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
             args.append(
@@ -315,7 +315,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 + " -O3"
             )
 
-        if "+hip" and "+cuda" in self.spec:
+        if "+hip" in self.spec and "+cuda" in self.spec:
             hip_comp = self.spec["hip"].prefix.bin.hipcc
             args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
             cuda_arch = self.spec.variants["cuda_arch"].value[0]
