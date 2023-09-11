@@ -61,7 +61,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         else:
             compiler = "c++"
 
-        if "+openmp_cpu" in spec or "+openmp" in spec:
+        if "+openmp_cpu" in spec or "+openmp_offload" in spec:
             cflags += " " + self.compiler.openmp_flag
 
         if "+dpcpp" in spec:
