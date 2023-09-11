@@ -317,8 +317,9 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
 
         if "+hip" and "+cuda" in self.spec:
             hip_comp = self.spec["hip"].prefix.bin.hipcc
-            cuda_arch = self.spec.variants["cuda_arch"].value
-            args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch)) + " -O3"))
+            args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
+            cuda_arch = self.spec.variants["cuda_arch"].value[0]
+            args.append(self.define("CXX_EXTRA_FLAGS", "-O3 -forward-unknown-to-host-compiler -arch={0}".format(cuda_arch)))
         # ===================================
         #             CUDA
         # ===================================
