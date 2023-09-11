@@ -252,6 +252,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # `~kokkos` option is there to prevent +kokkos +omp setting to use omp directly from here
         # Same applies for raja
         if ("+omp" in self.spec) and ("~kokkos" in self.spec) and ("~raja" in self.spec):
+            args.append(self.define("OMP_TARGET_GPU", "ON"))
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
             if "cuda_arch" in self.spec.variants:
                 cuda_arch_list = self.spec.variants["cuda_arch"].value
