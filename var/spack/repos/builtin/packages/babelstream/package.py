@@ -204,7 +204,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         model_list = find_model_flag(spec_string_truncate)  # Prints out ['cuda', 'thrust']
 
         if len(model_list) > 1:
-            ignore_list = ["cuda", "pkg", "chai"]  # if +acc is provided ignore the cuda model
+            ignore_list = ["cuda", "pkg", "chai", "rocm"]  # if +acc is provided ignore the cuda model
             model = list(set(model_list) - set(ignore_list))
             # We choose 'thrust' from the list of ['cuda', 'thrust']
             args = ["-DMODEL=" + model[0]]
@@ -259,9 +259,9 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 cuda_arch = "sm_" + cuda_arch_list[0]
                 args.append("-DOFFLOAD=" + "NVIDIA:" + cuda_arch)
             elif "amdgpu_target" in self.spec.variants:
-                rocm_arch = self.spec.variants["amdgpu_target"].value
-                # the architecture value is only number so append sm_ to the name
-                args.append("-DOFFLOAD=" + " AMD:" + rocm_arch)
+                rocm_arch_list = self.spec.variants["amdgpu_target"].value
+                rocm_arch = rocm_arch_list[0]
+                args.append("-DOFFLOAD=" + "AMD:" + rocm_arch)
             else:
                 args.append("-DOFFLOAD=" + "INTEL")
 
