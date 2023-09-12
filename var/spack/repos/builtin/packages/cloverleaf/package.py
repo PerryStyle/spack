@@ -39,7 +39,11 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             description="Compile using the specified SYCL compiler implementation"
             )
 
-    depends_on("hip", when="+hip")
+    with when("+hip") and when("+cuda"):
+        depends_on("hip +cuda -rocm")
+    
+    with when("+hip") and when("+rocm"):
+        depends_on("hip +rocm")
 
     depends_on("kokkos", when="+kokkos")
 
