@@ -56,12 +56,12 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         args = []
 
 
-        if "+hip" and "+rocm" in spec:
+        if "+hip" in spec and "+rocm" in spec:
             model = "hip"
             args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
             hip_arch = spec.variants["amdgpu_target"].value
             args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.hip_flags(hip_arch))))
-        elif "+hip" and "+cuda" in spec:
+        elif "+hip" in spec and "+cuda" in spec:
             model = "hip"
             args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
             cuda_arch = spec.variants["cuda_arch"].value
