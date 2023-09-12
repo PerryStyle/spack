@@ -204,7 +204,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         model_list = find_model_flag(spec_string_truncate)  # Prints out ['cuda', 'thrust']
 
         if len(model_list) > 1:
-            ignore_list = ["cuda", "pkg", "chai", "rocm"]  # if +acc is provided ignore the cuda model
+            ignore_list = ["cuda", "pkg", "chai", "rocm"]
             model = list(set(model_list) - set(ignore_list))
             # We choose 'thrust' from the list of ['cuda', 'thrust']
             args = ["-DMODEL=" + model[0]]
@@ -309,9 +309,9 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
             args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
             args.append(
                 "-DCXX_EXTRA_FLAGS= --offload-arch="
-                + self.spec.variants["amdgpu_target"].value
+                + self.spec.variants["amdgpu_target"].value[0]
                 + " "
-                + self.spec.variants["flags"].value
+                + (self.spec.variants["flags"].value if self.spec.variants["flags"].value != "none" else "")
                 + " -O3"
             )
 
