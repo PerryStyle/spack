@@ -85,15 +85,15 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             if "+hip" in spec and "+rocm" in spec:
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
                 hip_arch = spec.variants["amdgpu_target"].value
-                cflags += " " + " ".join(self.hip_flags(hip_arch))
+                cflags += " " + self.hip_flags(hip_arch)
             elif "+hip" in spec and "+cuda" in spec:
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
                 cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " " + " ".join(self.cuda_flags(cuda_arch))
-            elif "+cuda" in spec: 
+                cflags += " " + self.cuda_flags(cuda_arch)
+            elif "+cuda" in spec:
                 targets.append("CC={0}".format(spec["cuda"].prefix.bin.nvcc))
                 cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " " + " ".join(self.cuda_flags(cuda_arch))
+                cflags += " " + self.cuda_flags(cuda_arch)
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
