@@ -49,7 +49,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+hip" in spec and "+rocm" in spec:
             compiler = spec["hip"].prefix.bin.hipcc
             hip_arch = spec.variants["amdgpu_target"].value
-            cflags += " " + " ".join(self.hip_flags(hip_arch))
+            cflags += " " + self.hip_flags(hip_arch)
         elif "+hip" in spec and "+cuda" in spec:
             compiler = spec["hip"].prefix.bin.hipcc
             cuda_arch = spec.variants["cuda_arch"].value
