@@ -69,7 +69,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             model = "hip"
             args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
             cuda_arch = spec.variants["cuda_arch"].value
-            args.append(self.define("CXX_EXTRA_FLAGS", self.cuda_flags(cuda_arch)))
+            args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
         elif "+cuda" in spec:
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
