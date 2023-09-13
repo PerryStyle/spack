@@ -89,11 +89,11 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             elif "+hip" in spec and "+cuda" in spec:
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
                 cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " " + self.cuda_flags(cuda_arch)
+                cflags += " " + " ".join(self.cuda_flags(cuda_arch))
             elif "+cuda" in spec:
                 targets.append("CC={0}".format(spec["cuda"].prefix.bin.nvcc))
                 cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " " + self.cuda_flags(cuda_arch)
+                cflags += " " + " ".join(self.cuda_flags(cuda_arch))
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
