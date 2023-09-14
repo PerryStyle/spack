@@ -65,7 +65,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             cflags += " " + self.compiler.openmp_flag
 
         if "+dpcpp" in spec:
-            cflags += "-ffast-math -fsycl"
+            cflags += " -ffast-math -fsycl"
 
         if "+align" in spec:
             align = "yes"
