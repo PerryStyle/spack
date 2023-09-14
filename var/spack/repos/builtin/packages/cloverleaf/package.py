@@ -45,12 +45,10 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             default="none"
             )
 
-    with when("+hip") and when("+cuda"):
-        depends_on("hip +cuda -rocm")
+    with when("+hip"):
+        depends_on("hip +cuda -rocm", when="+cuda")
+        depends_on("hip +rocm", when="+rocm")
     
-    with when("+hip") and when("+rocm"):
-        depends_on("hip +rocm")
-
     depends_on("kokkos", when="+kokkos")
 
     depends_on("raja", when="+raja")
@@ -107,8 +105,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
 
-
-        if spec["extra-flags"].value != "none":
+        if spec.variants["extra-flags"].value != "none":
             args.append(self.define("CXX_EXTRA_FLAGS", spec["extra-flags"].value))
 
         args.append(self.define("MODEL", model))
