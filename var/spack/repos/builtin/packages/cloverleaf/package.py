@@ -102,7 +102,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             if "sycl-compiler=DPCPP":
                 cxx_bin = os.path.dirname(self.compiler.cxx)
                 cxx_prefix = join_path(cxx_bin, '..')
-                args.append(self.define("SYCL_COMPILER_DIR", self.compiler.prefix))
+                args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
 
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
 
