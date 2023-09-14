@@ -39,6 +39,11 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             description="Compile using the specified SYCL compiler implementation"
             )
 
+    variant("sycl-flags",
+            values=str,
+            default="none"
+            )
+
     with when("+hip") and when("+cuda"):
         depends_on("hip +cuda -rocm")
     
@@ -93,7 +98,13 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             if "+sycl-usm" in spec:
                 model = "sycl-usm"
 
+            if "sycl-compiler=DPCPP":
+                args.append(self.define("SYCL_COMPILER_DIR", self.compiler.prefix))
+
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
+
+            if spec["sycl-flags"].value != "none":
+                args.append(self.define("CXX_EXTRA_FLAGS", spec["sycl-flags"].value))
 
         args.append(self.define("MODEL", model))
 
