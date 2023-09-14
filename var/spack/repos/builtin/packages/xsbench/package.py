@@ -38,6 +38,7 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     variant("sycl", default=False, description="Build with SYCL support")
     variant("openacc", default=False, description="Build with OpenACC support")
     variant("align", default=False, description="Adjust timers to match across XSBench programming model variants")
+    
 
     depends_on("mpi", when="+mpi")
     depends_on("hip", when="+hip")
@@ -133,3 +134,10 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         if "+kokkos" in spec:
             return "kokkos"
+
+    def cmake_args(self):
+        spec = self.spec
+        args = []
+        if "^kokkos+rocm" in spec:
+            args.append("-DCMAKE_CXX_COMPILER=" + self.spec["hip"].prefix.bin.hipcc)
+        return args
