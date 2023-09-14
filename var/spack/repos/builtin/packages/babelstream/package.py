@@ -144,8 +144,9 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
             ("pocl", "pocl@1.5", "enable POCL backend"),
         ],
         "kokkos": [
-            ("cuda", "cuda", "enable Cuda backend"),
-            ("omp", "none", "enable Cuda backend"),
+            ("cuda", "cuda", "enable CUDA backend"),
+            ("omp", "none", "enable OMP backend"),
+            ("amd", "hip", "enable ROCm backend"),
         ],
     }
     backend_vals = ["none"]
@@ -160,7 +161,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         for item in backends[lang]:
             backend, dpdncy, descr = item
             if dpdncy.lower() != "none":
-                depends_on("%s" % dpdncy.lower(), when="backend=%s" % backend.lower())
+                depends_on("%s" % dpdncy.lower(), when="+%s backend=%s" % (lang, backend.lower()))
     # this flag could be used in all required languages
     variant("flags", values=str, default="none", description="Additional CXX flags to be provided")
 
@@ -430,13 +431,17 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # kokkos implementation is versatile and it could use cuda or omp architectures as backend
         # The usage should be spack install babelstream +kokkos +cuda [or +omp]
         if "+kokkos" in self.spec:
-            args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
             if "+pkg" in self.spec and "dir=none" in self.spec:
+                if "backend=amd" in self.spec:
+                    args.append("-DCMAKE_CXX_COMPILER=" + self.spec["hip"].prefix.bin.hipcc)
+                else:
+                    args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
                 args.append("-DKOKKOS_IN_PACKAGE=" + self.spec["kokkos"].prefix)
             else:
                 args.append("-DKOKKOS_IN_TREE=" + self.spec.variants["dir"].value)
                 if "backend" in self.spec.variants:
                     if "cuda" in self.spec.variants["backend"].value:
+                        args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
                         args.append("-DKokkos_ENABLE_CUDA=ON")
                         #args.append('-DRELEASE_FLAGS="-O3 -mcpu=native -arch=sm_70 -std=c++14"')
                         args.append("-DKokkos_ENABLE_CUDA_LAMBDA=ON")
@@ -456,7 +461,10 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                             args.append("-D" + "Kokkos_ARCH_VOLTA" + str(int_cuda_arch) + "=ON")
                         if int_cuda_arch == 75:
                             args.append("-DKokkos_ARCH_TURING75=ON")
+                    if "amd" in self.spec.variants["backend"].value:
+                        args.append("-DCMAKE_CXX_COMPILER=" + self.spec["hip"].prefix.bin.hipcc)
                     if "omp" in self.spec.variants["backend"].value:
+                        args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
                         args.append("-DKokkos_ENABLE_OPENMP=ON")
 
         # not in ["kokkos", "raja", "acc", "hip"] then compiler forced true
