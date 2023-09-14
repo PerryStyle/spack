@@ -7,6 +7,7 @@
 
 from spack.package import *
 
+import os
 
 class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     """FIXME: Put a proper description of your package here."""
@@ -39,7 +40,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             description="Compile using the specified SYCL compiler implementation"
             )
 
-    variant("sycl-flags",
+    variant("extra-flags",
             values=str,
             default="none"
             )
@@ -63,7 +64,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         spec = self.spec
         model = ""
         args = []
-
 
         if "+hip" in spec and "+rocm" in spec:
             model = "hip"
@@ -93,7 +93,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         if "+raja" in spec:
             model = "raja"
 
-        if "+sycl-acc" or "+sycl-usm":
+        if "+sycl-acc" in spec or "+sycl-usm" in spec:
             if "+sycl-acc" in spec:
                 model = "sycl-acc"
 
@@ -101,12 +101,15 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 model = "sycl-usm"
 
             if "sycl-compiler=DPCPP":
+                cxx_bin = os.path.dirname(self.compiler.cxx)
+                cxx_prefix = join_path(cxx_bin, '..')
                 args.append(self.define("SYCL_COMPILER_DIR", self.compiler.prefix))
 
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
 
-            if spec["sycl-flags"].value != "none":
-                args.append(self.define("CXX_EXTRA_FLAGS", spec["sycl-flags"].value))
+
+        if spec["extra-flags"].value != "none":
+            args.append(self.define("CXX_EXTRA_FLAGS", spec["extra-flags"].value))
 
         args.append(self.define("MODEL", model))
 
