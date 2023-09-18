@@ -22,6 +22,12 @@ class Chai(CachedCMakePackage, CudaPackage, ROCmPackage):
     version("develop", branch="develop", submodules=False)
     version("main", branch="main", submodules=False)
     version(
+        "2023.06.0",
+        tag="v2023.06.0",
+        commit="6fe3470ad020303530af2f3dbbfe18826bd3319b",
+        submodules=False,
+    )
+    version(
         "2022.03.0",
         tag="v2022.03.0",
         commit="f0b809de1ac194376866b3ac0f5933d4146ec09e",
