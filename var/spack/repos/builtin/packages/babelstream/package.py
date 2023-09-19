@@ -204,7 +204,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         spec_string_truncate_list = spec_string.split(" ")
         spec_string_truncate = ""
         for s in spec_string_truncate_list:
-            if s[0] == "+":
+            if "+" in s or "~" in s:
                 spec_string_truncate = s
                 break
         model_list = find_model_flag(spec_string_truncate)  # Prints out ['cuda', 'thrust']
