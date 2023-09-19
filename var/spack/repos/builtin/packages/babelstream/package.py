@@ -200,8 +200,13 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # convert spec to string to work on it
         spec_string = str(self.spec)
 
-        # take only the first portion of the spec until space
-        spec_string_truncate = spec_string.split(" ", 1)[0]
+        # take only the variant list for this package (cxxflags might come first)
+        spec_string_truncate_list = spec_string.split(" ")
+        spec_string_truncate = ""
+        for s in spec_string_truncate_list:
+            if s[0] == "+":
+                spec_string_truncate = s
+                break
         model_list = find_model_flag(spec_string_truncate)  # Prints out ['cuda', 'thrust']
 
         if len(model_list) > 1:
@@ -232,6 +237,8 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 cuda_arch = "cc" + cuda_arch_list[0]
                 args.append("-DTARGET_DEVICE=gpu")
                 args.append("-DCUDA_ARCH=" + cuda_arch)
+            elif "amdgpu_target" in self.spec.variants:
+                args.append("-DTARGET_DEVICE=amd")
             elif "cpu_arch" in self.spec.variants:
                 cpu_arch_list = self.spec.variants["cpu_arch"].value
                 # the architecture value is only number so append sm_ to the name
