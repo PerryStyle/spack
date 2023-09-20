@@ -7,6 +7,7 @@ import re  # To get the variant name after (+)
 
 from spack.package import *
 
+import os
 
 def find_model_flag(str):
     res = re.findall(r"\+(\w+)", str)
@@ -172,12 +173,6 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         default="none",
         description="Compile using the specified SYCL compiler option",
     )
-    variant(
-        "implementation_path",
-        values=str,
-        default="none",
-        description="Provide path to SYCL compiler install if needed",
-    )
 
     conflicts(
         "implementation=none",
@@ -223,14 +218,13 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
             else:
                 args = ["-DMODEL=" + model_list[0]]
 
-        if "ppc64le" in self.spec.architecture:
-            args.append('-DRELEASE_FLAGS=-O3')
-
         # ===================================
         #             ACC
         # ===================================
         if ("+acc" in self.spec) and ("~cuda" in self.spec):
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
+            if "ppc64le" in self.spec.architecture:
+                args.append('-DRELEASE_FLAGS=-O3')
             if "cuda_arch" in self.spec.variants:
                 cuda_arch_list = self.spec.variants["cuda_arch"].value
                 # the architecture value is only number so append sm_ to the name
@@ -278,11 +272,11 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # ===================================
 
         if "+sycl" in self.spec:
-            args.append("-DSYCL_COMPILER=" + self.spec.variants["implementation"].value.upper())
+            args.append(self.define_from_variant("SYCL_COMPILER", "implementation"))
             if self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
-                args.append(
-                    "-DSYCL_COMPILER_DIR=" + self.spec.variants["implementation_path"].value
-                )
+                cxx_bin = os.path.dirname(self.compiler.cxx)
+                cxx_prefix = join_path(cxx_bin, '..')
+                args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
                 if self.spec.variants["implementation"].value.upper() == "COMPUTE-CPP":
                     args.append("-DOpenCL_LIBRARY=")
 
@@ -298,15 +292,19 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 # this is required to enable -DCMAKE_CXX_COMPILER=icpx flag from CMake
                 args.append("-DSYCL_COMPILER=ONEAPI-ICPX")
             else:
-                args.append(
-                    "-DSYCL_COMPILER=" + self.spec.variants["implementation"].value.upper()
-                )
+                args.append(self.define_from_variant("SYCL_COMPILER", "implementation"))
                 if self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
-                    args.append(
-                        "-DSYCL_COMPILER_DIR=" + self.spec.variants["implementation_path"].value
-                    )
+                    cxx_bin = os.path.dirname(self.compiler.cxx)
+                    cxx_prefix = join_path(cxx_bin, '..')
+                    args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
                     if self.spec.variants["implementation"].value.upper() == "COMPUTE-CPP":
                         args.append("-DOpenCL_LIBRARY=")
+            if "ppc64le" in self.spec.architecture:
+                if self.spec.variants["cuda_arch"].value[0] != "none":
+                    #args.append("-DRELEASE_FLAGS=-O3;-fsycl;-fsycl-targets=nvptx64-nvidia-cuda;-Xsycl-target-backend;--cuda-gpu-arch=sm_" + self.spec.variants["cuda_arch"].value[0])
+                    args.append("-DRELEASE_FLAGS=-O3;-fsycl")
+                else:
+                    args.append("-DRELEASE_FLAGS=-O3;-fsycl")
 
         # ===================================
         #             HIP(ROCM)
