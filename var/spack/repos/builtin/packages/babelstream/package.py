@@ -303,7 +303,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 )
                 if self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
                     args.append(
-                        "-DSYCL_COMPILER_DIR=" + self.spec.variants["implementation"].value.upper()
+                        "-DSYCL_COMPILER_DIR=" + self.spec.variants["implementation_path"].value
                     )
                     if self.spec.variants["implementation"].value.upper() == "COMPUTE-CPP":
                         args.append("-DOpenCL_LIBRARY=")
