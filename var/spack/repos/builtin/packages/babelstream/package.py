@@ -93,7 +93,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
 
     # Raja Conflicts
     variant(
-        "offload", values=str, default="none", description="Enable RAJA Target [CPU or NVIDIA]"
+        "offload", values=str, default="none", description="Enable RAJA Target [CPU, NVIDIA, AMD]"
     )
     variant(
         "chai", values=bool, default=False, description="Enable CHAI for portable memory management"
@@ -103,7 +103,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
     conflicts(
         "offload=none",
         when="+raja",
-        msg="RAJA requires architecture to be specfied by target=[CPU,NVIDIA]",
+        msg="RAJA requires architecture to be specfied by target=[CPU,NVIDIA,AMD]",
     )
     conflicts(
         "dir=none",
@@ -384,6 +384,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 args.append("-Dchai_ROOT=" + self.spec["chai"].prefix)
             if "+pkg" in self.spec:
                 args.append("-DRAJA_IN_PACKAGE=" + self.spec["raja"].prefix)
+                args.append("-DBLT_DIR=" + self.spec["blt"].prefix)
             else:
                 args.append("-DRAJA_IN_TREE=" + self.spec.variants["dir"].value)
             if "omp" in self.spec.variants["backend"].value:
@@ -404,6 +405,9 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                     args.append("-DCUDA_TOOLKIT_ROOT_DIR=" + self.spec["cuda"].prefix)
                     if self.spec.variants["flags"].value != "none":
                         args.append("-DCUDA_EXTRA_FLAGS=" + self.spec.variants["flags"].value)
+                elif "amd" in self.spec.variants["offload"].value:
+                    args.append("-DTARGET=AMD")
+                    args.append("-DENABLE_HIP=ON")
                 # if("cpu" in self.spec.variants['offload'].value):
 
 
