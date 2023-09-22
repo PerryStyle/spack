@@ -27,8 +27,6 @@ class Dpcpp(CMakePackage):
 
     maintainers("ravil-mobile")
 
-    requires("%gcc", msg="DPC++ builds only with GCC")
-
     variant("cuda", default=False, description="switch from OpenCL to CUDA")
     variant("hip", default=False, description="switch from OpenCL to HIP")
     variant(
@@ -63,6 +61,9 @@ class Dpcpp(CMakePackage):
     depends_on("ninja@1.10.0:", type="build")
 
     depends_on("cuda@10.2.0:", when="+cuda")
+
+    depends_on("hip +cuda", when="+hip hip-platform=NVIDIA")
+    depends_on("hip +rocm", when="+hip hip-platform=AMD")
 
     conflicts("~lld", when="+hip hip-platform=AMD", msg="lld is needed for HIP plugin on AMD")
     conflicts("~lld", when=(sys.platform == "windows"), msg="lld is needed on Windows")
@@ -103,6 +104,9 @@ class Dpcpp(CMakePackage):
 
         is_cuda = "+cuda" in self.spec
         is_hip = "+hip" in self.spec
+
+        if "+lld" in self.spec:
+            llvm_enable_projects += ";lld"
 
         if "+esimd-emulator" in self.spec:
             sycl_enabled_plugins += ";esimd_emulator"
@@ -162,9 +166,8 @@ class Dpcpp(CMakePackage):
         if is_cuda or (is_hip and sycl_build_pi_hip_platform == "NVIDIA"):
             args.append(self.define("CUDA_TOOLKIT_ROOT_DIR", self.spec["cuda"].prefix))
 
-        if self.compiler.name == "gcc":
-            gcc_prefix = ancestor(self.compiler.cc, 2)
-            args.append(self.define("GCC_INSTALL_PREFIX", gcc_prefix))
+        if is_hip and sycl_build_pi_hip_platform == "AMD":
+            args.append(self.define("SYCL_BUILD_PI_HIP_ROCM_DIR", self.spec["hip"].prefix))
 
         return args
 
