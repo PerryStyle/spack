@@ -181,6 +181,11 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
     )
     conflicts(
         "implementation=none",
+        when="+sycl2020",
+        msg="SYCL2020 requires compiler implementation to be specified by option=",
+    )
+    conflicts(
+        "implementation=none",
         when="+thrust",
         msg="Which Thrust implementation to use, supported options include:\
          - CUDA (via https://github.com/NVIDIA/thrust)\
@@ -190,6 +195,8 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
     # This applies to all
     depends_on("cmake@3.14.0:", type="build")
     depends_on("opencl-c-headers", when="+ocl")
+
+    depends_on("dpcpp", when="+sycl2020 implementation=dpcpp")
 
     def cmake_args(self):
         # convert spec to string to work on it
@@ -292,8 +299,16 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 # this is required to enable -DCMAKE_CXX_COMPILER=icpx flag from CMake
                 args.append("-DSYCL_COMPILER=ONEAPI-ICPX")
             else:
-                args.append(self.define_from_variant("SYCL_COMPILER", "implementation"))
-                if self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
+                args.append(self.define_from_variant("SYCL_COMPILER", "implementation").upper())
+                if self.spec.variants["implementation"].value.upper() == "DPCPP":
+                    toolchain_prefix = self.spec['dpcpp'].prefix
+                    args.append(self.define("SYCL_COMPILER_DIR", toolchain_prefix))
+                    if "amdgpu_target" in self.spec.variants:
+                        args.append(
+                                "-DCXX_EXTRA_FLAGS=-fsycl-targets=amdgcn-amd-amdhsa "
+                                + " -Xsycl-target-backend --offload-arch="
+                                + self.spec.variants["amdgpu_target"].value[0])
+                elif self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
                     cxx_bin = os.path.dirname(self.compiler.cxx)
                     cxx_prefix = join_path(cxx_bin, '..')
                     args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
