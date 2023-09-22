@@ -12,7 +12,6 @@ import os
 class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     """FIXME: Put a proper description of your package here."""
 
-    # FIXME: Add a proper url for your package's homepage here.
     homepage = "https://www.example.com"
     url = "cloverleaf"
     git = "https://github.com/UoB-HPC/CloverLeaf.git"
@@ -73,6 +72,29 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
             cuda_arch = spec.variants["cuda_arch"].value
             args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
+        elif "+sycl-acc" in spec or "+sycl-usm" in spec:
+            if "+sycl-acc" in spec:
+                model = "sycl-acc"
+
+            if "+sycl-usm" in spec:
+                model = "sycl-usm"
+
+            if "sycl-compiler=DPCPP":
+                cxx_bin = os.path.dirname(self.compiler.cxx)
+                cxx_prefix = join_path(cxx_bin, '..')
+                args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
+
+            if "+cuda" in spec:
+                cuda_arch = spec.variants["cuda_arch"].value[0]
+                args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=nvidia_gpu_sm_{0}".format(cuda_arch)))
+
+            if "+rocm" in spec:
+                hip_arch = spec.variants["amdgpu_target"].value
+                args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=amd_gpu_{0}".format(hip_arch)))
+
+            args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
+
+
         elif "+cuda" in spec:
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
@@ -94,20 +116,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
         if "+raja" in spec:
             model = "raja"
-
-        if "+sycl-acc" in spec or "+sycl-usm" in spec:
-            if "+sycl-acc" in spec:
-                model = "sycl-acc"
-
-            if "+sycl-usm" in spec:
-                model = "sycl-usm"
-
-            if "sycl-compiler=DPCPP":
-                cxx_bin = os.path.dirname(self.compiler.cxx)
-                cxx_prefix = join_path(cxx_bin, '..')
-                args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
-
-            args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
 
         if spec.variants["extra-flags"].value != "none":
             args.append(self.define("CXX_EXTRA_FLAGS", spec["extra-flags"].value))
