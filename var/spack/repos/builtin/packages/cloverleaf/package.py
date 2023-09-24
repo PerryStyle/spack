@@ -12,7 +12,6 @@ import os
 class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     """FIXME: Put a proper description of your package here."""
 
-    # FIXME: Add a proper url for your package's homepage here.
     homepage = "https://www.example.com"
     url = "cloverleaf"
     git = "https://github.com/UoB-HPC/CloverLeaf.git"
@@ -62,34 +61,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         model = ""
         args = []
 
-        if "+hip" in spec and "+rocm" in spec:
-            model = "hip"
-            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
-            hip_arch = spec.variants["amdgpu_target"].value
-            args.append(self.define("CXX_EXTRA_FLAGS", self.hip_flags(hip_arch)))
-        elif "+hip" in spec and "+cuda" in spec:
-            model = "hip"
-            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
-            cuda_arch = spec.variants["cuda_arch"].value
-            args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
-        elif "+cuda" in spec:
-            model = "cuda"
-            args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
-            args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value[0])))
-        
-        if "+kokkos" in spec:
-            model = "kokkos"
-            args.append(self.define("KOKKOS_IN_PACKAGE", spec["kokkos"].prefix))
-
-        if "+omp" in spec:
-            model = "omp"
-
-        if "+omp-target" in spec:
-            model = "omp-target"
-
-        if "+raja" in spec:
-            model = "raja"
-
         if "+sycl-acc" in spec or "+sycl-usm" in spec:
             if "+sycl-acc" in spec:
                 model = "sycl-acc"
@@ -102,7 +73,55 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 cxx_prefix = join_path(cxx_bin, '..')
                 args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
 
+            if "cuda_arch" in spec.variants:
+                cuda_arch = spec.variants["cuda_arch"].value[0]
+                args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=nvidia_gpu_sm_{0}".format(cuda_arch)))
+
+            if "amdgpu_target" in spec.variants:
+                hip_arch = spec.variants["amdgpu_target"].value
+                args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=amd_gpu_{0}".format(hip_arch)))
+
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
+        elif "+hip" in spec:
+            model = "hip"
+            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
+
+            if "amdgpu_target" in spec.variants:
+                hip_arch = spec.variants["amdgpu_target"].value
+                args.append(self.define("CXX_EXTRA_FLAGS", self.hip_flags(hip_arch)))
+
+            if "cuda_arch" in spec.variants:
+                cuda_arch = spec.variants["cuda_arch"].value[0]
+                args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
+        elif "+cuda" in spec:
+            model = "cuda"
+            args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
+            args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value[0])))
+        elif "+kokkos" in spec:
+            kokkos_spec = spec["kokkos"]
+            model = "kokkos"
+            args.append(self.define("KOKKOS_IN_PACKAGE", kokkos_spec.prefix))
+
+            if spec["kokkos"].satisfies("+rocm"):
+                args.append(self.define("CMAKE_CXX_COMPILER", kokkos_spec["hip"].prefix.bin.hipcc))
+        elif "+omp" in spec:
+            model = "omp"
+        elif "+omp-target" in spec:
+            model = "omp-target"
+        elif "+raja" in spec:
+            raja_spec = spec["raja"]
+            model = "raja"
+
+            if "+cuda" in raja_spec:
+                cuda_arch = raja_spec.variants["cuda_arch"].value[0]
+                args.append(self.define("RAJA_BACK_END", "CUDA"))
+                args.append(self.define("CMAKE_CUDA_COMPILER", raja_spec["cuda"].prefix.bin.nvcc))
+                args.append(self.define("DEVICE_ARCH", "sm_{0}".format(cuda_arch)))
+
+            if "+rocm" in raja_spec:
+                args.append(self.define("RAJA_BACK_END", "HIP"))
+                args.append(self.define("DEVICE_ARCH", raja_spec.variants["hip_arch"].value))
+                args.append(self.define("CMAKE_CXX_COMPILER", raja_spec["hip"].prefix.bin.hipcc))
 
         if spec.variants["extra-flags"].value != "none":
             args.append(self.define("CXX_EXTRA_FLAGS", spec["extra-flags"].value))
