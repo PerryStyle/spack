@@ -19,7 +19,6 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     variant("openmp_offload", default=False, description="Build with OpenMP Offload support")
     variant("kokkos", default=False, description="Build with Kokkos support")
     variant("raja", default=False, description="Build with RAJA support")
-    variant("hip", default=False, description="Build with HIP support")
     variant("dpcpp", default=False, description="Build with DPC++ support")
     variant("openacc", default=False, description="Build with OpenACC support")
     variant("align", default=False, description="Adjust timers to include data movement to device")
@@ -30,8 +29,6 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     conflicts("build_system=makefile", when="+raja")
     
     # conflicts("+cuda +hip", msg="CUDA and HIP are mutually exclusive")
-
-    depends_on("hip", when="+hip")
 
     depends_on("kokkos", when="+kokkos")
     
@@ -46,14 +43,10 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         cflags = "-O3"
         align = "no"
 
-        if "+hip" in spec and "+rocm" in spec:
+        if "+rocm" in spec:
             compiler = spec["hip"].prefix.bin.hipcc
             hip_arch = spec.variants["amdgpu_target"].value
             cflags += " " + self.hip_flags(hip_arch)
-        elif "+hip" in spec and "+cuda" in spec:
-            compiler = spec["hip"].prefix.bin.hipcc
-            cuda_arch = spec.variants["cuda_arch"].value
-            cflags += " " + " ".join(self.cuda_flags(cuda_arch))
         elif "+cuda" in spec:
             compiler = spec["cuda"].prefix.bin.nvcc
             cuda_arch = spec.variants["cuda_arch"].value
@@ -87,7 +80,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+openmp_offload" in spec:
             makefile_file = "Makefile.openmp"
 
-        if "+hip" in spec:
+        if "+rocm" in spec:
             makefile_file = "Makefile.hip"
 
         if "+cuda" in spec: 
