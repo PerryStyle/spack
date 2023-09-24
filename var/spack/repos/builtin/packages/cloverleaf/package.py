@@ -62,17 +62,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         model = ""
         args = []
 
-        if "+hip" in spec and "+rocm" in spec:
-            model = "hip"
-            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
-            hip_arch = spec.variants["amdgpu_target"].value
-            args.append(self.define("CXX_EXTRA_FLAGS", self.hip_flags(hip_arch)))
-        elif "+hip" in spec and "+cuda" in spec:
-            model = "hip"
-            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
-            cuda_arch = spec.variants["cuda_arch"].value
-            args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
-        elif "+sycl-acc" in spec or "+sycl-usm" in spec:
+        if "+sycl-acc" in spec or "+sycl-usm" in spec:
             if "+sycl-acc" in spec:
                 model = "sycl-acc"
 
@@ -84,17 +74,26 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 cxx_prefix = join_path(cxx_bin, '..')
                 args.append(self.define("SYCL_COMPILER_DIR", cxx_prefix))
 
-            if "+cuda" in spec:
+            if "cuda_arch" in spec.variants:
                 cuda_arch = spec.variants["cuda_arch"].value[0]
                 args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=nvidia_gpu_sm_{0}".format(cuda_arch)))
 
-            if "+rocm" in spec:
+            if "amdgpu_target" in spec.variants:
                 hip_arch = spec.variants["amdgpu_target"].value
                 args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=amd_gpu_{0}".format(hip_arch)))
 
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
+        elif "+hip" in spec:
+            model = "hip"
+            args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
 
+            if "amdgpu_target" in spec.variants:
+                hip_arch = spec.variants["amdgpu_target"].value
+                args.append(self.define("CXX_EXTRA_FLAGS", self.hip_flags(hip_arch)))
 
+            if "cuda_arch" in spec.variants:
+                cuda_arch = spec.variants["cuda_arch"].value
+                args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
         elif "+cuda" in spec:
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
