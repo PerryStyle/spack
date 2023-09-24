@@ -138,6 +138,11 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
     def cmake_args(self):
         spec = self.spec
         args = []
-        if "^kokkos+rocm" in spec:
-            args.append("-DCMAKE_CXX_COMPILER=" + self.spec["hip"].prefix.bin.hipcc)
+
+        if "+kokkos" in spec:
+            kokkos_spec = spec["kokkos"]
+
+            if "+rocm" in kokkos_spec:
+                args.append(self.define("CMAKE_CXX_COMPILER", kokkos_spec["hip"].prefix.bin.hipcc))
+
         return args
