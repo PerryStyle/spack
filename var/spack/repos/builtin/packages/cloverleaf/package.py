@@ -92,7 +92,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 args.append(self.define("CXX_EXTRA_FLAGS", self.hip_flags(hip_arch)))
 
             if "cuda_arch" in spec.variants:
-                cuda_arch = spec.variants["cuda_arch"].value
+                cuda_arch = spec.variants["cuda_arch"].value[0]
                 args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
         elif "+cuda" in spec:
             model = "cuda"
@@ -114,8 +114,10 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             model = "raja"
 
             if "+cuda" in raja_spec:
+                cuda_arch = raja_spec.variants["cuda_arch"].value[0]
                 args.append(self.define("RAJA_BACK_END", "CUDA"))
-                args.append(self.define("DEVICE_ARCH", raja_spec.variants["cuda_arch"].value))
+                args.append(self.define("CUDA_ARCHITECTURES", "{0}".format(cuda_arch)))
+                args.append(self.define("DEVICE_ARCH", cuda_arch))
 
             if "+rocm" in raja_spec:
                 args.append(self.define("RAJA_BACK_END", "HIP"))
