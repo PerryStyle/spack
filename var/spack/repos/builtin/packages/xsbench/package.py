@@ -55,6 +55,9 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
 
         if "+openmp-offload" in spec:
             return "openmp-offload"
+        
+        if "+sycl" in spec:
+            return "sycl"
 
         if "+hip" in spec:
             return "hip"
@@ -64,9 +67,6 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
 
         if "+kokkos" in spec:
             return "kokkos"
-
-        if "+sycl" in spec:
-            return "sycl"
 
         if "+openacc" in spec:
             return "openacc"
@@ -83,25 +83,25 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             targets.append("CC=mpicc")
             targets.append("MPI=yes")
         else:
-            if "+hip" in spec and "+rocm" in spec:
+            if "+hip" in spec:
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
-                hip_arch = spec.variants["amdgpu_target"].value
-                cflags += " " + self.hip_flags(hip_arch)
-            elif "+hip" in spec and "+cuda" in spec:
-                targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
-                cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " " + " ".join(self.cuda_flags(cuda_arch))
+
+                if "amdgpu_target" in spec.variants:
+                    hip_arch = spec.variants["amdgpu_target"].value
+                    cflags += " " + self.hip_flags(hip_arch)
+
+                if "cuda_arch" in spec.variants:
+                    cuda_arch = spec.variants["cuda_arch"].value
+                    cflags += " " + " ".join(self.cuda_flags(cuda_arch))
             elif "+cuda" in spec:
                 targets.append("CC={0}".format(spec["cuda"].prefix.bin.nvcc))
-                cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " " + " ".join(self.cuda_flags(cuda_arch))
+
+                if "cuda_arch" in spec.variants:
+                    cuda_arch = spec.variants["cuda_arch"].value
+                    cflags += " " + " ".join(self.cuda_flags(cuda_arch))
             elif "+sycl" in spec:
                 targets.append("CC={0}".format(spack_cxx))
                 cflags += " -fsycl" + " " + self.compiler.cxx17_flag
-            elif "+openmp-offload" in spec:
-                targets.append("CC={0}".format(spack_cc))
-            elif "+openacc" in spec:
-                targets.append("CC={0}".format(spack_cc))
             else:
                 targets.append("CC={0}".format(spack_cc))
 
