@@ -98,13 +98,12 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
             args.append(self.define("CUDA_ARCH", "sm_{0}".format(spec.variants["cuda_arch"].value[0])))
-        
-        if "+kokkos" in spec:
+        elif "+kokkos" in spec:
+            kokkos_spec = spec["kokkos"]
             model = "kokkos"
-            args.append(self.define("KOKKOS_IN_PACKAGE", spec["kokkos"].prefix))
+            args.append(self.define("KOKKOS_IN_PACKAGE", kokkos_spec.prefix))
 
             if spec["kokkos"].satisfies("+rocm"):
-                kokkos_spec = spec["kokkos"]
                 args.append(self.define("CMAKE_CXX_COMPILER", kokkos_spec["hip"].prefix.bin.hipcc))
 
         if "+omp" in spec:
