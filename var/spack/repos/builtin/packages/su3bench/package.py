@@ -119,6 +119,10 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         if "+kokkos" in spec:
             model = "Kokkos"
+            kokkos_spec = spec["kokkos"]
+
+            if "+rocm" in kokkos_spec:
+                args.append(self.define("CMAKE_CXX_COMPILER", kokkos_spec["hip"].prefix.bin.hipcc))
 
         if "+raja" in spec:
             model = "RAJA"
