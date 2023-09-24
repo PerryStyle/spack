@@ -109,9 +109,17 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             model = "omp"
         elif "+omp-target" in spec:
             model = "omp-target"
-
-        if "+raja" in spec:
+        elif "+raja" in spec:
+            raja_spec = spec["raja"]
             model = "raja"
+
+            if "+cuda" in raja_spec:
+                args.append(self.define("RAJA_BACK_END", "CUDA"))
+                args.append(self.define("DEVICE_ARCH", raja_spec.variants["cuda_arch"].value))
+
+            if "+rocm" in raja_spec:
+                args.append(self.define("RAJA_BACK_END", "HIP"))
+                args.append(self.define("DEVICE_ARCH", raja_spec.variants["hip_arch"].value))
 
         if spec.variants["extra-flags"].value != "none":
             args.append(self.define("CXX_EXTRA_FLAGS", spec["extra-flags"].value))
