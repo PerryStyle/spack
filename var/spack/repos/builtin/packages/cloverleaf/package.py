@@ -116,8 +116,8 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             if "+cuda" in raja_spec:
                 cuda_arch = raja_spec.variants["cuda_arch"].value[0]
                 args.append(self.define("RAJA_BACK_END", "CUDA"))
-                args.append(self.define("CUDA_ARCHITECTURES", "{0}".format(cuda_arch)))
-                args.append(self.define("DEVICE_ARCH", cuda_arch))
+                args.append(self.define("CMAKE_CUDA_COMPILER", raja_spec["cuda"].prefix.bin.nvcc))
+                args.append(self.define("DEVICE_ARCH", "sm_{0}".format(cuda_arch)))
 
             if "+rocm" in raja_spec:
                 args.append(self.define("RAJA_BACK_END", "HIP"))
