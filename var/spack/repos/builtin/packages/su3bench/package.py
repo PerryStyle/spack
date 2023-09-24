@@ -117,6 +117,9 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
         args = []
         model = ""
 
+        if "+align" in spec:
+            args.append(self.define("ALIGN", "ON"))
+
         if "+kokkos" in spec:
             model = "Kokkos"
             kokkos_spec = spec["kokkos"]
