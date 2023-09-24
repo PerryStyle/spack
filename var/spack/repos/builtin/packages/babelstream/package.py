@@ -43,7 +43,6 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
     variant("stdindices", default=False, description="Enable STD-indices support")
     variant("stdranges", default=False, description="Enable STD-ranges support")
     variant("kokkos", default=False, description="Enable KOKKOS support")
-    variant("hip", default=False, description="")
 
     # Some models need to have the programming model abstraction downloaded -
     # this variant enables a path to be provided.
@@ -52,8 +51,6 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         "pkg", default=False,
         description="Use spack package support instead of directory where possible"
     )
-
-    depends_on("hip", when="+hip")
 
     # Kokkos conflicts
     #conflicts(
@@ -325,22 +322,13 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         #             HIP(ROCM)
         # ===================================
 
-        if "+hip" in self.spec and "+rocm" in self.spec:
-            hip_comp = self.spec["hip"].prefix.bin.hipcc
+        if "+rocm" in self.spec:
+            hip_comp = self.spec["hip"].hipcc
+            hip_arch = self.spec.variants["amdgpu_target"].value
+            args = ["-DMODEL=" + "hip"]
             args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
-            args.append(
-                "-DCXX_EXTRA_FLAGS= --offload-arch="
-                + self.spec.variants["amdgpu_target"].value[0]
-                + " "
-                + (self.spec.variants["flags"].value if self.spec.variants["flags"].value != "none" else "")
-                + " -O3"
-            )
+            args.append(self.define("CXX_EXTRA_FLAGS", self.hip_flags(hip_arch) + " -O3"))
 
-        if "+hip" in self.spec and "+cuda" in self.spec:
-            hip_comp = self.spec["hip"].prefix.bin.hipcc
-            args.append("-DCMAKE_CXX_COMPILER=" + hip_comp)
-            cuda_arch = self.spec.variants["cuda_arch"].value[0]
-            args.append(self.define("CXX_EXTRA_FLAGS", "-O3 -forward-unknown-to-host-compiler -arch=sm_{0}".format(cuda_arch)))
         # ===================================
         #             CUDA
         # ===================================
