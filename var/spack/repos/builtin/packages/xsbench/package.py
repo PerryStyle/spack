@@ -33,15 +33,12 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     variant("mpi", default=False, description="Build with MPI support")
     variant("openmp-threading", default=False, description="Build with OpenMP Threading support")
     variant("openmp-offload", default=False, description="Build with OpenMP Offload support")
-    variant("hip", default=False, description="Build with HIP support")
     variant("kokkos", default=False, description="Build with Kokkos support")
     variant("sycl", default=False, description="Build with SYCL support")
     variant("openacc", default=False, description="Build with OpenACC support")
     variant("align", default=False, description="Adjust timers to match across XSBench programming model variants")
     
-
     depends_on("mpi", when="+mpi")
-    depends_on("hip", when="+hip")
     depends_on("kokkos", when="+kokkos")
 
     conflicts("cuda_arch=none", when="+cuda", msg="CUDA architecture is required")
@@ -59,7 +56,7 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+sycl" in spec:
             return "sycl"
 
-        if "+hip" in spec:
+        if "+rocm" in spec:
             return "hip"
 
         if "+cuda" in spec:
@@ -83,16 +80,12 @@ class Xsbench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             targets.append("CC=mpicc")
             targets.append("MPI=yes")
         else:
-            if "+hip" in spec:
+            if "+rocm" in spec:
                 targets.append("CC={0}".format(spec["hip"].prefix.bin.hipcc))
 
                 if "amdgpu_target" in spec.variants:
                     hip_arch = spec.variants["amdgpu_target"].value
                     cflags += " " + self.hip_flags(hip_arch)
-
-                if "cuda_arch" in spec.variants:
-                    cuda_arch = spec.variants["cuda_arch"].value
-                    cflags += " " + " ".join(self.cuda_flags(cuda_arch))
             elif "+cuda" in spec:
                 targets.append("CC={0}".format(spec["cuda"].prefix.bin.nvcc))
 
