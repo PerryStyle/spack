@@ -47,7 +47,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
     with when("+hip"):
         depends_on("hip +cuda -rocm", when="+cuda")
         depends_on("hip +rocm", when="+rocm")
-    
+
     depends_on("kokkos", when="+kokkos")
 
     depends_on("raja", when="+raja")
@@ -85,6 +85,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
         elif "+hip" in spec:
             model = "hip"
             args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
+            args.append(self.define("CMAKE_C_COMPILER", spec["hip"].prefix.bin.hipcc))
 
             if "amdgpu_target" in spec.variants:
                 hip_arch = spec.variants["amdgpu_target"].value
