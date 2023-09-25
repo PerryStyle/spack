@@ -122,6 +122,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             if "+rocm" in raja_spec:
                 args.append(self.define("RAJA_BACK_END", "HIP"))
                 args.append(self.define("DEVICE_ARCH", raja_spec.variants["hip_arch"].value))
+                args.append(self.define("CMAKE_CXX_COMPILER", raja_spec["hip"].prefix.bin.hipcc))
 
         if spec.variants["extra-flags"].value != "none":
             args.append(self.define("CXX_EXTRA_FLAGS", spec["extra-flags"].value))
