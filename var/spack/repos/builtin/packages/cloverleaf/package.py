@@ -24,7 +24,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
 
     variant("kokkos", default=False, description="Enable Kokkos support")
     variant("omp", default=False, description="Enable OpenMP support")
-    variant("hip", default=False, description="Enabel HIP support")
     variant("omp-target", default=False, description="Enable OpenMP target offload support")
     variant("raja", default=False, description="Enable RAJA support")
     variant("sycl-acc", default=False, description="Enable sycl-acc support")
@@ -44,10 +43,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             default="none"
             )
 
-    with when("+hip"):
-        depends_on("hip +cuda -rocm", when="+cuda")
-        depends_on("hip +rocm", when="+rocm")
-    
     depends_on("kokkos", when="+kokkos")
 
     depends_on("raja", when="+raja")
@@ -83,7 +78,17 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=amd_gpu_{0}".format(hip_arch)))
 
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
-        elif "+hip" in spec:
+        elif "+omp-target" in spec:
+            model = "omp-target"
+            
+            if "amdgpu_target" in spec.variants:
+                hip_arch = spec.variants["amdgpu_target"].value[0]
+                args.append(self.define("OFFLOAD", "AMD:{0}".format(hip_arch)))
+            
+            if "cuda_arch" in spec.variants:
+                cuda_arch = spec.variants["cuda_arch"].value[0]
+                args.append(self.define("OFFLOAD", "NVIDIA:{0}".format(cuda_arch)))
+        elif "+rocm" in spec:
             model = "hip"
             args.append(self.define("CMAKE_CXX_COMPILER", spec["hip"].prefix.bin.hipcc))
 
@@ -91,9 +96,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 hip_arch = spec.variants["amdgpu_target"].value
                 args.append(self.define("CXX_EXTRA_FLAGS", self.hip_flags(hip_arch)))
 
-            if "cuda_arch" in spec.variants:
-                cuda_arch = spec.variants["cuda_arch"].value[0]
-                args.append(self.define("CXX_EXTRA_FLAGS", " ".join(self.cuda_flags(cuda_arch))))
         elif "+cuda" in spec:
             model = "cuda"
             args.append(self.define("CMAKE_CUDA_COMPILER", spec["cuda"].prefix.bin.nvcc))
@@ -107,8 +109,6 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 args.append(self.define("CMAKE_CXX_COMPILER", kokkos_spec["hip"].prefix.bin.hipcc))
         elif "+omp" in spec:
             model = "omp"
-        elif "+omp-target" in spec:
-            model = "omp-target"
         elif "+raja" in spec:
             raja_spec = spec["raja"]
             model = "raja"
