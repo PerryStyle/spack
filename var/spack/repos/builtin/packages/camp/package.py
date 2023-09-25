@@ -39,6 +39,7 @@ class Camp(CMakePackage, CudaPackage, ROCmPackage):
     maintainers("trws")
 
     version("main", branch="main", submodules="True")
+    version("2023.06.0", sha256="b828f650727717578317d7e048048b279a2670bb82a0f0aaf3196fefb0bafca9")
     version("2022.10.1", sha256="2d12f1a46f5a6d01880fc075cfbd332e2cf296816a7c1aa12d4ee5644d386f02")
     version("2022.03.2", sha256="bc4aaeacfe8f2912e28f7a36fc731ab9e481bee15f2c6daf0cb208eed3f201eb")
     version("2022.03.0", sha256="e9090d5ee191ea3a8e36b47a8fe78f3ac95d51804f1d986d931e85b8f8dad721")
@@ -54,6 +55,8 @@ class Camp(CMakePackage, CudaPackage, ROCmPackage):
     depends_on("cub", when="+cuda")
 
     depends_on("blt")
+
+    conflicts("^blt@:0.3.6", when="+rocm")
 
     def cmake_args(self):
         spec = self.spec
