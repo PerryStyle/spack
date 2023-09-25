@@ -300,6 +300,10 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 if self.spec.variants["implementation"].value.upper() == "DPCPP":
                     toolchain_prefix = self.spec['dpcpp'].prefix
                     args.append(self.define("SYCL_COMPILER_DIR", toolchain_prefix))
+                    if "cuda_arch" in self.spec.variants:
+                        cuda_arch = self.spec.variants["cuda_arch"].value[0]
+                        args.append(self.define(CXX_EXTRA_FLAGS, "-fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --cuda-gpu-arch=sm_{0}".format(cuda_arch)))
+                    
                     if "amdgpu_target" in self.spec.variants:
                         args.append(
                                 "-DCXX_EXTRA_FLAGS=-fsycl-targets=amdgcn-amd-amdhsa "
