@@ -225,7 +225,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         # ===================================
         #             ACC
         # ===================================
-        if ("+acc" in self.spec) and ("~cuda" in self.spec):
+        if "+acc" in self.spec:
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
             if "ppc64le" in self.spec.architecture:
                 args.append('-DRELEASE_FLAGS=-O3')
@@ -303,7 +303,6 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                     if "cuda_arch" in self.spec.variants:
                         cuda_arch = self.spec.variants["cuda_arch"].value[0]
                         args.append(self.define(CXX_EXTRA_FLAGS, "-fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --cuda-gpu-arch=sm_{0}".format(cuda_arch)))
-                    
                     if "amdgpu_target" in self.spec.variants:
                         args.append(
                                 "-DCXX_EXTRA_FLAGS=-fsycl-targets=amdgcn-amd-amdhsa "
@@ -384,6 +383,8 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         #             RAJA
         # ===================================
         if "+raja" in self.spec:
+            if "ppc64le" in self.spec.architecture:
+                args.append('-DRELEASE_FLAGS=-O3')
             args.append("-DCMAKE_CXX_COMPILER=" + self.compiler.cxx)
             if "+chai" in self.spec:
                 args.append("-DCHAI_IN_PACKAGE=" + self.spec["chai"].prefix)
