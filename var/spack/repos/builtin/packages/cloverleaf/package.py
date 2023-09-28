@@ -72,19 +72,23 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
             if "cuda_arch" in spec.variants:
                 cuda_arch = spec.variants["cuda_arch"].value[0]
                 args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=nvidia_gpu_sm_{0}".format(cuda_arch)))
+                args.append(self.define("OFFLOAD_ARCH", "sm_{0}".format(cuda_arch)))
+                args.append(self.define("SYCL_TARGET", "nvptx64-nvidia-cuda"))
 
             if "amdgpu_target" in spec.variants:
                 hip_arch = spec.variants["amdgpu_target"].value
                 args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=amd_gpu_{0}".format(hip_arch)))
+                args.append(self.define("OFFLOAD_ARCH", hip_arch))
+                args.append(self.define("SYCL_TARGET", "amdgcn-amd-amdhsa"))
 
             args.append(self.define_from_variant("SYCL_COMPILER", "sycl-compiler"))
         elif "+omp-target" in spec:
             model = "omp-target"
-            
+
             if "amdgpu_target" in spec.variants:
                 hip_arch = spec.variants["amdgpu_target"].value[0]
                 args.append(self.define("OFFLOAD", "AMD:{0}".format(hip_arch)))
-            
+
             if "cuda_arch" in spec.variants:
                 cuda_arch = spec.variants["cuda_arch"].value[0]
                 args.append(self.define("OFFLOAD", "NVIDIA:{0}".format(cuda_arch)))
