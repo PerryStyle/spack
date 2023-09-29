@@ -19,7 +19,8 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     variant("openmp_offload", default=False, description="Build with OpenMP Offload support")
     variant("kokkos", default=False, description="Build with Kokkos support")
     variant("raja", default=False, description="Build with RAJA support")
-    variant("dpcpp", default=False, description="Build with DPC++ support")
+    variant("dpcpp", default=False, description="Build with Intel DPC++ support")
+    variant("sycl", default=False, description="Build with SYCL support")
     variant("openacc", default=False, description="Build with OpenACC support")
     variant("align", default=False, description="Adjust timers to include data movement to device")
 
@@ -41,7 +42,9 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         spec = self.spec
         compiler = ""
         cflags = "-O3"
+        libs = ""
         align = "no"
+        args = []
 
         if "+rocm" in spec:
             compiler = spec["hip"].prefix.bin.hipcc
@@ -60,6 +63,9 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+dpcpp" in spec:
             cflags += " -fsycl"
 
+        if "+sycl" in spec:
+            cflags += " -fsycl"
+
         if "+align" in spec:
             align = "yes"
 
@@ -67,6 +73,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
             "CC={0}".format(compiler),
             "CFLAGS={0}".format(cflags),
             "ALIGN={0}".format(align),
+            "LIBS={0}".format(libs),
             "all",
         }
 
@@ -88,6 +95,9 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
 
         if "+dpcpp" in spec:
             makefile_file = "Makefile.dpcpp"
+
+        if "+sycl" in spec:
+            makefile_file = "Makefile.sycl"
 
         if "+openacc" in spec:
             makefile_file = "Makefile.openacc"
