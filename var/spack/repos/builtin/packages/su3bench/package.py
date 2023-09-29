@@ -23,13 +23,12 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     variant("sycl", default=False, description="Build with SYCL support")
     variant("openacc", default=False, description="Build with OpenACC support")
     variant("align", default=False, description="Adjust timers to include data movement to device")
+    variant("milc_complex", default=False, description="Use MILC complex numbers")
 
     build_system("makefile", "cmake", default="makefile")
 
     conflicts("build_system=makefile", when="+kokkos")
     conflicts("build_system=makefile", when="+raja")
-    
-    # conflicts("+cuda +hip", msg="CUDA and HIP are mutually exclusive")
 
     depends_on("kokkos", when="+kokkos")
     
@@ -68,6 +67,9 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
 
         if "+align" in spec:
             align = "yes"
+
+        if "+milc_complex" in spec:
+            cflags += " -DMILC_COMPLEX"
 
         return {
             "CC={0}".format(compiler),
