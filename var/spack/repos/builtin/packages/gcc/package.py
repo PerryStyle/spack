@@ -1006,7 +1006,7 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
 
         # Copy LLVM utils
         llvm_bin_path = join_path(spec["llvm"].prefix, "bin")
-        llvm_util_path = join_path(prefix, "libexec", "gcc", "amdgcn-amdhsa")
+        llvm_util_path = join_path(prefix, "amdgcn-amdhsa", "bin")
         mkdirp(llvm_util_path)
         copy(
             "{0}".format(join_path(llvm_bin_path, "llvm-ar")),
