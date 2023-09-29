@@ -74,7 +74,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         return {
             "CC={0}".format(compiler),
             "CFLAGS={0}".format(cflags),
-            "ALIGN={0}".format(align),
+            "ALIGNED={0}".format(align),
             "LIBS={0}".format(libs),
             "all",
         }
