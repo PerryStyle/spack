@@ -32,9 +32,11 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
 
     depends_on("kokkos", when="+kokkos")
     
-    depends_on("raja", when="+raja")
-    depends_on("umpire", when="+raja")
-    depends_on("chai", when="+raja")
+    with when("+raja"):
+        depends_on("raja")
+        depends_on("blt")
+        depends_on("umpire")
+        depends_on("chai")
 
     @property
     def build_targets(self):
@@ -134,6 +136,7 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         if "+raja" in spec:
             model = "RAJA"
+            args.append(self.define("BLT_DIR", spec["blt"].prefix))
 
             raja_spec = spec["raja"]
             if "+cuda" in raja_spec:
