@@ -136,12 +136,11 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
             model = "RAJA"
 
             raja_spec = spec["raja"]
-            if raja_spec.satisfies("+openmp"):
-                args.append(self.define("ENABLE_OPENMP", "ON"))
-            if raja_spec.satisfies("+cuda"):
-                args.append(self.define("ENABLE_CUDA", "ON"))
-            if raja_spec.satisfies("+hip"):
-                args.append(self.define("ENABLE_HIP", "ON"))
+            if "+cuda" in raja_spec:
+                args.append(self.define("TARGET", "CUDA"))
+
+            if "+rocm" in raja_spec:
+                args.append(self.define("TARGET", "HIP"))
 
         args.append(self.define("MODEL", model))
 
