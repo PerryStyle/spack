@@ -76,7 +76,7 @@ class Cloverleaf(CMakePackage, CudaPackage, ROCmPackage):
                 args.append(self.define("SYCL_TARGET", "nvptx64-nvidia-cuda"))
 
             if "amdgpu_target" in spec.variants:
-                hip_arch = spec.variants["amdgpu_target"].value
+                hip_arch = spec.variants["amdgpu_target"].value[0]
                 args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl-targets=amd_gpu_{0}".format(hip_arch)))
                 args.append(self.define("OFFLOAD_ARCH", hip_arch))
                 args.append(self.define("SYCL_TARGET", "amdgcn-amd-amdhsa"))
