@@ -141,6 +141,7 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
             raja_spec = spec["raja"]
             if "+cuda" in raja_spec:
                 args.append(self.define("TARGET", "CUDA"))
+                args.append(self.define("CMAKE_CUDA_ARCHITECTURES", raja_spec.variants["cuda_arch"].value[0]))
 
             if "+rocm" in raja_spec:
                 args.append(self.define("TARGET", "HIP"))
