@@ -31,7 +31,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
     conflicts("build_system=makefile", when="+raja")
 
     depends_on("kokkos", when="+kokkos")
-    
+
     with when("+raja"):
         depends_on("raja")
         depends_on("blt")
@@ -61,10 +61,7 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         if "+openmp_cpu" in spec or "+openmp_offload" in spec:
             cflags += " " + self.compiler.openmp_flag
 
-        if "+dpcpp" in spec:
-            cflags += " -fsycl"
-
-        if "+sycl" in spec:
+        if "+dpcpp" or "+sycl" in spec:
             cflags += " -fsycl"
 
         if "+align" in spec:
