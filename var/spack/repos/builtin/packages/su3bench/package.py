@@ -45,7 +45,6 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
         cflags = "-O3"
         libs = ""
         align = "no"
-        args = []
 
         if "+rocm" in spec:
             compiler = spec["hip"].prefix.bin.hipcc
@@ -142,6 +141,8 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
             if "+rocm" in raja_spec:
                 args.append(self.define("TARGET", "HIP"))
+                args.append(self.define("CMAKE_CXX_COMPILER", raja_spec["hip"].prefix.bin.hipcc))
+
 
         args.append(self.define("MODEL", model))
 
