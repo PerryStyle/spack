@@ -298,14 +298,16 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
             else:
                 args.append(self.define_from_variant("SYCL_COMPILER", "implementation").upper())
                 if self.spec.variants["implementation"].value.upper() == "DPCPP":
-                    toolchain_prefix = self.spec['dpcpp'].prefix
+                    #toolchain_prefix = self.spec['dpcpp'].prefix
+                    cxx_bin = os.path.dirname(self.compiler.cxx)
+                    toolchain_prefix = join_path(cxx_bin, '..')
                     args.append(self.define("SYCL_COMPILER_DIR", toolchain_prefix))
                     if "cuda_arch" in self.spec.variants:
                         cuda_arch = self.spec.variants["cuda_arch"].value[0]
-                        args.append(self.define(CXX_EXTRA_FLAGS, "-fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --cuda-gpu-arch=sm_{0}".format(cuda_arch)))
+                        args.append(self.define("CXX_EXTRA_FLAGS", "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend --cuda-gpu-arch=sm_{0}".format(cuda_arch)))
                     if "amdgpu_target" in self.spec.variants:
                         args.append(
-                                "-DCXX_EXTRA_FLAGS=-fsycl-targets=amdgcn-amd-amdhsa "
+                                "-DCXX_EXTRA_FLAGS=-fsycl -fsycl-targets=amdgcn-amd-amdhsa "
                                 + " -Xsycl-target-backend --offload-arch="
                                 + self.spec.variants["amdgpu_target"].value[0])
                 elif self.spec.variants["implementation"].value.upper() != "ONEAPI-DPCPP":
@@ -325,7 +327,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         #             HIP(ROCM)
         # ===================================
 
-        if "+rocm" in self.spec:
+        if "+rocm" in self.spec and "~sycl2020" in self.spec:
             hip_comp = self.spec["hip"].hipcc
             hip_arch = self.spec.variants["amdgpu_target"].value
             args = ["-DMODEL=" + "hip"]
