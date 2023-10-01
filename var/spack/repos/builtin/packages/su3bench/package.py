@@ -40,49 +40,47 @@ class Su3bench(MakefilePackage, CMakePackage, CudaPackage, ROCmPackage):
 
     @property
     def build_targets(self):
-        try:
-            spec = self.spec
-            compiler = ""
-            cflags = "-O3"
-            align = "no"
+        spec = self.spec
+        compiler = ""
+        cflags = "-O3"
+        libs = ""
+        align = "no"
+        args = []
 
-            if "+openmp_offload" in spec:
-                compiler = self.compiler.cxx
-                cflags += " " + self.compiler.openmp_flag
-                for f in spec.compiler_flags["cflags"]:
-                    cflags += " " + f
-                # Removing this so the user can just specify the offload flags in the environment
-                #cflags += " -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa"
-                #cflags += " -march=" + spec.variants["amdgpu_target"].value[0]
-            elif "+hip" in spec:
-                compiler = spec["hip"].prefix.bin.hipcc
-                hip_arch = spec.variants["amdgpu_target"].value
-                cflags += " " + self.hip_flags(hip_arch)
-                cflags += " -I " + spec["hip"].prefix + "/include"
-                cflags += " -I " + spec["rocthrust"].prefix + "/include"
-            elif "+cuda" in spec:
-                compiler = spec["cuda"].prefix.bin.nvcc
-                cuda_arch = spec.variants["cuda_arch"].value
-                cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
-            else:
-                compiler = "c++"
+        if "+rocm" in spec:
+            compiler = spec["hip"].prefix.bin.hipcc
+            hip_arch = spec.variants["amdgpu_target"].value
+            cflags += " " + self.hip_flags(hip_arch)
+        elif "+cuda" in spec:
+            compiler = spec["cuda"].prefix.bin.nvcc
+            cuda_arch = spec.variants["cuda_arch"].value
+            cflags += " --x cu " + " ".join(self.cuda_flags(cuda_arch))
+        else:
+            compiler = "c++"
 
-            if "+openmp_cpu" in spec:
-                cflags += " " + self.compiler.openmp_flag
+        if "+openmp_cpu" in spec or "+openmp_offload" in spec:
+            cflags += " " + self.compiler.openmp_flag
 
-            if "+dpcpp" in spec:
-                cflags += " -fsycl"
+        if "+dpcpp" in spec:
+            cflags += " -fsycl"
 
-            if "+align" in spec:
-                cflags += " -DALIGNED_WORK"
+        if "+sycl" in spec:
+            cflags += " -fsycl"
 
-            return {
-                "CC={0}".format(compiler),
-                "CFLAGS={0}".format(cflags),
-                "all",
-            }
-        except AttributeError as e:
-            raise Exception(f"Error in property method build_targets: {e}")
+        if "+align" in spec:
+            align = "yes"
+
+        if "+milc_complex" in spec:
+            cflags += " -DMILC_COMPLEX"
+
+        return {
+            "CC={0}".format(compiler),
+            "CFLAGS={0}".format(cflags),
+            "ALIGNED={0}".format(align),
+            "LIBS={0}".format(libs),
+            "all",
+        }
+
 
     def build(self, spec, prefix):
         makefile_file = ""
