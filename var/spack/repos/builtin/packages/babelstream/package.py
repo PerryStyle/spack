@@ -327,7 +327,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
         #             HIP(ROCM)
         # ===================================
 
-        if "+rocm" in self.spec and "~sycl2020" in self.spec:
+        if "+rocm" in self.spec and "~sycl2020" in self.spec and "~raja" in self.spec:
             hip_comp = self.spec["hip"].hipcc
             hip_arch = self.spec.variants["amdgpu_target"].value
             args = ["-DMODEL=" + "hip"]
@@ -418,6 +418,7 @@ class Babelstream(CMakePackage, CudaPackage, ROCmPackage):
                 elif "amd" in self.spec.variants["offload"].value:
                     args.append("-DTARGET=AMD")
                     args.append("-DENABLE_HIP=ON")
+                    args.append(self.define("CMAKE_CXX_COMPILER", self.spec["hip"].prefix.bin.hipcc))
                 # if("cpu" in self.spec.variants['offload'].value):
 
 
