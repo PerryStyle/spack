@@ -131,6 +131,7 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
     )
     variant("strip", default=False, description="Strip executables to reduce installation size")
     variant("nvptx", default=False, description="Target nvptx offloading to NVIDIA GPUs")
+    variant("amdgcn", default=False, description="Target amdgcn offloading to AMD GPUs")
     variant("bootstrap", default=True, description="Enable 3-stage bootstrap")
     variant(
         "graphite", default=False, description="Enable Graphite loop optimizations (requires ISL)"
@@ -298,12 +299,33 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
                 msg="'gcc@12: languages=d' requires '%gcc@9:' with the D language support",
             )
 
+    # Newlib version table
+    newlib_shasum = {
+        "3.0.0.20180831": "3ad3664f227357df15ff34e954bfd9f501009a647667cd307bf0658aefd6eb5b",
+        "3.3.0": "58dd9e3eaedf519360d92d84205c3deef0b3fc286685d1c562e245914ef72c66",
+        "4.1.0": "f296e372f51324224d387cc116dc37a6bd397198756746f93a2b02e9a5d40154",
+        "4.2.0.20211231": "c3a0e8b63bc3bef1aeee4ca3906b53b3b86c8d139867607369cb2915ffc54435",
+        "4.3.0.20230120": "83a62a99af59e38eb9b0c58ed092ee24d700fff43a22c03e433955113ef35150",
+    }
+
+    # GPU offload backend supported by limited languages
+    with when("+nvptx") or when("+amdgcn"):
+        conflicts("languages=ada")
+        conflicts("languages=brig")
+        conflicts("languages=go")
+        conflicts("languages=java")
+        conflicts("languages=jit")
+        conflicts("languages=objc")
+        conflicts("languages=obj-c++")
+        conflicts("languages=d")
+
     with when("+nvptx"):
         depends_on("cuda")
+        newlib_ver = "3.0.0.20180831"
         resource(
             name="newlib",
-            url="ftp://sourceware.org/pub/newlib/newlib-3.0.0.20180831.tar.gz",
-            sha256="3ad3664f227357df15ff34e954bfd9f501009a647667cd307bf0658aefd6eb5b",
+            url="ftp://sourceware.org/pub/newlib/newlib-{0}.tar.gz".format(newlib_ver),
+            sha256=newlib_shasum[newlib_ver],
             destination="newlibsource",
             fetch_options=timeout,
         )
@@ -315,17 +337,61 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
             git="https://github.com/MentorEmbedded/nvptx-tools",
             commit="d0524fbdc86dfca068db5a21cc78ac255b335be5",
         )
-        # NVPTX offloading supported in 7 and later by limited languages
+        # NVPTX offloading supported in 7 and later
         conflicts("@:6", msg="NVPTX only supported in gcc 7 and above")
-        conflicts("languages=ada")
-        conflicts("languages=brig")
-        conflicts("languages=go")
-        conflicts("languages=java")
-        conflicts("languages=jit")
-        conflicts("languages=objc")
-        conflicts("languages=obj-c++")
-        conflicts("languages=d")
         # NVPTX build disables bootstrap
+        conflicts("+bootstrap")
+
+    with when("+amdgcn"):
+        # AMDGCN build requires LLVM utilities
+        llvm_src_ver = {
+            "@10.1.0": "9.0.1",
+            "@10.2.0": "9.0.1",
+            "@10.3.0": "9.0.1",
+            "@10.4.0": "9.0.1",
+            "@11.1.0": "9.0.1",
+            "@11.2.0": "9.0.1",
+            "@11.3.0": "9.0.1",
+            "@12.1.0": "13.0.1",
+            "@12.2.0": "13.0.1",
+            "@12.3.0": "13.0.1",
+            "@13.1.0": "13.0.1",
+            "@13.2.0": "13.0.1",
+        }
+        for k, v in llvm_src_ver.items():
+            depends_on(
+                f"llvm@{v} ~clang +lld ~gold ~llvm_dylib ~polly targets=amdgpu",
+                type="build",
+                when=k,
+            )
+        # The Newlib version needs to be contemporaenous with GCC
+        newlib_ver = {
+            "@10.1.0": "3.3.0",  # GCC: 2020-05-07, Newlib: 2020-01-22
+            "@10.2.0": "3.3.0",  # GCC: 2020-07-23, Newlib: 2020-01-22
+            "@10.3.0": "4.1.0",  # GCC: 2021-04-08, Newlib: 2020-12-18
+            "@10.4.0": "4.2.0.20211231",  # GCC: 2022-06-28, Newlib: 2021-12-31
+            "@11.1.0": "4.1.0",  # GCC: 2021-04-27, Newlib: 2020-12-18
+            "@11.2.0": "4.1.0",  # GCC: 2021-07-28, Newlib: 2020-12-18
+            "@11.3.0": "4.2.0.20211231",  # GCC: 2022-04-21, Newlib: 2021-12-31
+            "@12.1.0": "4.2.0.20211231",  # GCC: 2022-05-06, Newlib: 2021-12-31
+            "@12.2.0": "4.2.0.20211231",  # GCC: 2022-08-19, Newlib: 2021-12-31
+            "@12.3.0": "4.3.0.20230120",  # GCC: 2023-05-08, Newlib: 2023-01-20
+            "@13.1.0": "4.3.0.20230120",  # GCC: 2023-04-26, Newlib: 2023-01-20
+            "@13.2.0": "4.3.0.20230120",  # GCC: 2023-04-26, Newlib: 2023-01-20
+            "@develop": "4.3.0.20230120",  # Newest version of Newlib
+        }
+        for k, v in newlib_ver.items():
+            with when(k):
+                resource(
+                    name="newlib",
+                    url="ftp://sourceware.org/pub/newlib/newlib-{0}.tar.gz".format(v),
+                    sha256=newlib_shasum[v],
+                    destination="newlibsource",
+                    fetch_options=timeout,
+                )
+        # AMDGCN offloading supported in 10 and later
+        conflicts("@:9", msg="AMDGCN only supported in gcc 10 and above")
+        # AMDGCN build disables bootstrap
         conflicts("+bootstrap")
 
     # Binutils can't build ld on macOS
@@ -337,11 +403,11 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
     #   on XCode 12.5
     conflicts("+bootstrap", when="@:11.1 %apple-clang@12.0.5")
 
-    # aarch64/M1 is supported in GCC 11.3-12.2
-    conflicts(
-        "@:11.2,12.3:",
+    # aarch64/M1 is supported in GCC 11.3-12.2 and 13
+    requires(
+        "@11.3,12.2,13.1:",
         when="target=aarch64: platform=darwin",
-        msg="Only GCC 11.3-12.2 support macOS M1 (aarch64)",
+        msg="Only GCC 11.3-12.2, 13.1+ support macOS M1 (aarch64)",
     )
 
     # Newer binutils than RHEL's is required to run `as` on some instructions
@@ -413,7 +479,17 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
             sha256="a7843b5c6bf1401e40c20c72af69c8f6fc9754ae980bb4a5f0540220b3dcb62d",
             when="@12.2.0 target=aarch64:",
         )
-        conflicts("+bootstrap", when="@11.3.0 target=aarch64:")
+        patch(
+            "https://raw.githubusercontent.com/Homebrew/formula-patches/5c206c47/gcc/gcc-13.1.0.diff",
+            sha256="cb4e8a89387f748a744da0273025d0dc2e3c76780cc390b18ada704676afea11",
+            when="@13.1.0 target=aarch64:",
+        )
+        patch(
+            "https://raw.githubusercontent.com/Homebrew/formula-patches/3c5cbc8e9cf444a1967786af48e430588e1eb481/gcc/gcc-13.2.0.diff",
+            sha256="2df7ef067871a30b2531a2013b3db661ec9e61037341977bfc451e30bf2c1035",
+            when="@13.2.0 target=aarch64:",
+        )
+        conflicts("+bootstrap", when="@11.3.0,13.1: target=aarch64:")
 
         # Use -headerpad_max_install_names in the build,
         # otherwise updated load commands won't fit in the Mach-O header.
@@ -801,15 +877,27 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
                 ]
             )
 
-        # nvptx-none offloading for host compiler
+        # GPU offload targets
+        offload_targets = []
+        if spec.satisfies("+nvptx"):
+            offload_targets.append("nvptx-none")
+        if spec.satisfies("+amdgcn"):
+            offload_targets.append("amdgcn-amdhsa")
+        if offload_targets:
+            options.extend(
+                [
+                    "--enable-offload-targets={0}".format(",".join(offload_targets)),
+                    "--disable-bootstrap",
+                    "--disable-multilib",
+                ]
+            )
+
+        # arguments for nvptx-none offloading
         if spec.satisfies("+nvptx"):
             options.extend(
                 [
-                    "--enable-offload-targets=nvptx-none",
                     "--with-cuda-driver-include={0}".format(spec["cuda"].prefix.include),
                     "--with-cuda-driver-lib={0}".format(spec["cuda"].libs.directories[0]),
-                    "--disable-bootstrap",
-                    "--disable-multilib",
                 ]
             )
 
@@ -843,6 +931,13 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
 
         return options
 
+    # Common code for nvptx and amdgcn to link newlib source directory
+    def link_newlib(self):
+        pattern = join_path(self.stage.source_path, "newlibsource", "*")
+        files = glob.glob(pattern)
+        if files:
+            symlink(join_path(files[0], "newlib"), "newlib")
+
     # run configure/make/make(install) for the nvptx-none target
     # before running the host compiler phases
     @run_before("configure")
@@ -871,11 +966,7 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
             make()
             make("install")
 
-        pattern = join_path(self.stage.source_path, "newlibsource", "*")
-        files = glob.glob(pattern)
-
-        if files:
-            symlink(join_path(files[0], "newlib"), "newlib")
+        self.link_newlib()
 
         # self.build_directory = 'spack-build-nvptx'
         with working_dir("spack-build-nvptx", create=True):
@@ -889,6 +980,70 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage):
                 "--enable-as-accelerator-for={0}".format(targetguess),
                 "--disable-sjlj-exceptions",
                 "--enable-newlib-io-long-long",
+            ]
+
+            configure = Executable("../configure")
+            configure(*options)
+            make()
+            make("install")
+
+    # run configure/make/make(install) for the amdgcn-amdhsa target
+    # before running the host compiler phases
+    @run_before("configure")
+    def amdgcn_install(self):
+        spec = self.spec
+        prefix = self.prefix
+
+        if not spec.satisfies("+amdgcn"):
+            return
+
+        # config.guess returns the host triple, e.g. "x86_64-pc-linux-gnu"
+        guess = Executable("./config.guess")
+        targetguess = guess(output=str).rstrip("\n")
+
+        options = getattr(self, "configure_flag_args", [])
+        options += ["--prefix={0}".format(prefix)]
+
+        # Copy LLVM utils
+        llvm_bin_path = join_path(spec["llvm"].prefix, "bin")
+        llvm_util_path = join_path(prefix, "amdgcn-amdhsa", "bin")
+        mkdirp(llvm_util_path)
+        copy(
+            "{0}".format(join_path(llvm_bin_path, "llvm-ar")),
+            "{0}".format(join_path(llvm_util_path, "ar")),
+        )
+        copy(
+            "{0}".format(join_path(llvm_bin_path, "llvm-ar")),
+            "{0}".format(join_path(llvm_util_path, "ranlib")),
+        )
+        copy(
+            "{0}".format(join_path(llvm_bin_path, "llvm-mc")),
+            "{0}".format(join_path(llvm_util_path, "as")),
+        )
+        copy(
+            "{0}".format(join_path(llvm_bin_path, "llvm-nm")),
+            "{0}".format(join_path(llvm_util_path, "nm")),
+        )
+        copy(
+            "{0}".format(join_path(llvm_bin_path, "lld")),
+            "{0}".format(join_path(llvm_util_path, "ld")),
+        )
+
+        self.link_newlib()
+
+        # self.build_directory = 'spack-build-amdgcn'
+        with working_dir("spack-build-amdgcn", create=True):
+            options = [
+                "--prefix={0}".format(prefix),
+                "--enable-languages={0}".format(",".join(spec.variants["languages"].value)),
+                "--with-mpfr={0}".format(spec["mpfr"].prefix),
+                "--with-gmp={0}".format(spec["gmp"].prefix),
+                "--target=amdgcn-amdhsa",
+                "--with-build-time-tools={0}".format(llvm_util_path),
+                "--enable-as-accelerator-for={0}".format(targetguess),
+                "--disable-sjlj-exceptions",
+                "--enable-newlib-io-long-long",
+                "--disable-libquadmath",
             ]
 
             configure = Executable("../configure")

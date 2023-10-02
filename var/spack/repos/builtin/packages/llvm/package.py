@@ -35,6 +35,7 @@ class Llvm(CMakePackage, CudaPackage):
     family = "compiler"  # Used by lmod
 
     version("main", branch="main")
+    version("17.0.1", sha256="d51b10be66c10a6a81f4c594b554ffbf1063ffbadcb810af37d1f88d6e0b49dd")
     version("16.0.6", sha256="56b2f75fdaa95ad5e477a246d3f0d164964ab066b4619a01836ef08e475ec9d5")
     version("16.0.5", sha256="e0fbca476693fcafa125bc71c8535587b6d9950293122b66b262bb4333a03942")
     version("16.0.4", sha256="10c3fe1757d2e4f1cd7745dc548ecf687680a71824ec81701c38524c2a0753e2")
@@ -240,6 +241,26 @@ class Llvm(CMakePackage, CudaPackage):
         default=False,
         when="@15:",
         description="Enable zstd support for static analyzer / lld",
+    )
+    variant(
+        "projects",
+        description="Additional LLVM projects to build",
+        values=(
+            "all",
+            "none",
+            "clang",
+            "clang-tools-extra",
+            "cross-project-tests",
+            "libc",
+            "libclc",
+            "lld",
+            "lldb",
+            "openmp",
+            "polly",
+            "pstl",
+        ),
+        default="none",
+        multi=True,
     )
 
     provides("libllvm@14", when="@14.0.0:14")
@@ -597,6 +618,8 @@ class Llvm(CMakePackage, CudaPackage):
             output = compiler("--version", output=str, error=str)
             if "Apple" in output:
                 return None
+            if "AMD" in output:
+                return None
             match = version_regex.search(output)
             if match:
                 return match.group(match.lastindex)
@@ -917,6 +940,16 @@ class Llvm(CMakePackage, CudaPackage):
         # https://github.com/llvm/llvm-project/issues/57037
         if self.spec.satisfies("@15.0.0: platform=darwin"):
             cmake_args.append(define("BUILTINS_CMAKE_ARGS", "-DCOMPILER_RT_ENABLE_IOS=OFF"))
+
+        # Add extra projects
+        extra_projects = spec.variants["projects"].value
+        if "all" in extra_projects:
+            projects = ["all"]
+        else:
+            if extra_projects[0] != "none":
+                for project in extra_projects:
+                    if project not in projects:
+                        projects.append(project)
 
         # Semicolon seperated list of projects to enable
         cmake_args.append(define("LLVM_ENABLE_PROJECTS", projects))
